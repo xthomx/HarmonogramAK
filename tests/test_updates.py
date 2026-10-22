@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import patch
 from urllib.error import HTTPError, URLError
 from updates import check_updates, release_result, version_tuple, ASSET_NAME
+from app_version import APP_VERSION
 
 class UpdateTests(unittest.TestCase):
     def release(self, version='v1.1.0', assets=True):
@@ -29,7 +30,7 @@ class UpdateTests(unittest.TestCase):
                 self.assertEqual(check_updates()['status'],status)
 
     def test_response_and_timeout(self):
-        with patch('updates.urlopen', return_value=io.BytesIO(json.dumps(self.release()).encode())) as request:
+        with patch('updates.urlopen', return_value=io.BytesIO(json.dumps(self.release('v'+str(version_tuple(APP_VERSION)[0]+1)+'.0.0')).encode())) as request:
             self.assertEqual(check_updates()['status'],'available')
             self.assertEqual(request.call_args.kwargs['timeout'],10)
         with patch('updates.urlopen', return_value=io.BytesIO(b'invalid')):
