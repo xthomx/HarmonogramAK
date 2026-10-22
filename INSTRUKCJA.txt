@@ -1,0 +1,173 @@
+﻿PLAN ZESPOŁU — WERSJA WINDOWS EXCEL / CSV / TXT / KOD I BUDOWANIE
+22.10.2026
+
+WAŻNE: ten pakiet zawiera aplikację Python i skrypt budowania.
+Nie zawiera jeszcze gotowego EXE. Kompilację należy wykonać na Windows.
+Kod obsługi plików przetestowano na Linux; okno Windows i wynikowy EXE
+wymagają sprawdzenia na komputerze z Windows.
+
+PIERWSZE URUCHOMIENIE
+1. Rozpakuj cały ZIP do własnego katalogu, np. Dokumenty\PlanZespolu.
+2. Skrypt wykrywa Python 3.10–3.15 64-bit przez launcher „py” lub PATH.
+   Jeśli żadnego nie masz, zainstaluj Python 3.12 64-bit z launcherem „py”:
+   https://www.python.org/downloads/windows/
+3. Wymagany jest Microsoft Edge WebView2 Runtime. Jeżeli go brakuje:
+   https://developer.microsoft.com/microsoft-edge/webview2/
+4. Uruchom URUCHOM.bat. Przy pierwszym uruchomieniu pobierze zależności.
+   Internet jest potrzebny do instalacji, późniejsza praca jest lokalna.
+   Jeśli instalacja została przerwana, uruchom PRZYGOTUJ.bat ponownie.
+
+UTWORZENIE PROGRAMU EXE
+1. Uruchom ZBUDUJ_EXE.bat. Zaczekaj na instalację zależności, testy i budowę.
+2. Wynik: dist\PlanZespolu\PlanZespolu.exe
+3. Zachowaj CAŁY folder dist\PlanZespolu, wraz z podkatalogiem _internal.
+   Ten folder można przenieść na drugi komputer Windows 64-bit.
+4. Na komputerze docelowym Python nie jest wymagany, WebView2 Runtime jest.
+5. Można utworzyć skrót do PlanZespolu.exe na pulpicie.
+
+OBSŁUGA
+- Otwórz: wybór planu Excel XLSX, CSV, TXT lub starszego JSON z dysku.
+- Format pliku: domyślnie Excel (.xlsx); dostępne także CSV i TXT.
+- Zapisz: aktualizacja otwartego pliku; za pierwszym razem wybór lokalizacji.
+- Po zmianie formatu oraz po otwarciu JSON program zapyta o nowy plik.
+  Starszy JSON pozostaje zachowany; program nie zapisuje już do JSON.
+- Zapisz jako: zapis do innego pliku.
+- Ctrl+S: zapis; Ctrl+Shift+S: zapis jako.
+- Zastosuj w formularzu aktualizuje bieżący plan. Dopiero Zapisz zapisuje go na dysku.
+- Przy każdym zamknięciu pojawia się potwierdzenie z przypomnieniem o zapisie.
+- Program nie zapisuje planu automatycznie. Po ponownym uruchomieniu użyj Otwórz.
+- Dotychczasowy plan z witryny przenieś przez Zapisz w witrynie, potem Otwórz w programie.
+
+FUNKCJE
+Osoby, grupy, projekty i numery tematów; wielokrotne filtry osób i projektów;
+przeciąganie pasków między osobami, zmiana długości, dodawanie z kalendarza;
+kompaktowe wiersze, kolumny dni/tygodni oraz zakresy do półrocza i roku.
+Pełny interfejs jest lokalny. Nie ma wspólnej bazy ani synchronizacji komputerów.
+Archiwum zawiera dane przykładowe, nie zawiera Twojego planu z przeglądarki.
+
+PROBLEMY
+Błąd uruchomienia jest zapisywany w %LOCALAPPDATA%\PlanZespolu\blad.log.
+W razie problemów z budową zachowaj komunikat z okna skryptu.
+Do ręcznego uruchomienia testów: .venv\Scripts\python.exe -m unittest discover -s tests -v
+Pakiet przeznaczony do Windows 10/11 64-bit, wymaga testu na docelowym komputerze.
+
+PLIKI I ZALEŻNOŚCI
+main.py — okno i natywne operacje na plikach; ui — interfejs HTML/CSS/JS.
+requirements.txt — pywebview 6.x i PyInstaller 6.x (instalowane przez pip).
+Dokumentacja:
+https://pywebview.flowrl.com/api/
+https://pyinstaller.org/en/stable/operating-mode.html
+
+PRACA Z EXCELEM
+CSV: kodowanie UTF-8 z BOM, separator średnik (;).
+TXT: kodowanie UTF-8 z BOM, separator tabulator.
+W Excelu użyj importu danych z pliku tekstowego/CSV. Wskaż właściwy separator
+oraz kodowanie UTF-8. Dla kolumn ID, Osoba_ID, Projekt_ID i Nr_tematu wybierz
+typ Tekst, aby Excel nie usunął początkowych zer. Daty zapisujemy YYYY-MM-DD;
+przy dalszym zapisie do programu zachowaj ten format, najlepiej jako tekst.
+Zaangażowanie jest liczbą 1–100 (np. 75 oznacza 75%).
+
+CSV/TXT ZAWIERA CAŁY PLAN W JEDNEJ TABELI
+Kolumna Typ rozróżnia wiersze OSOBA, PROJEKT, PRZYPISANIE, USTAWIENIE i FORMAT.
+Aby analizować harmonogram, w Excelu filtruj Typ = PRZYPISANIE.
+Takie wiersze zawierają nazwy osób, grupę, nazwę projektu, numer tematu, daty
+oraz zaangażowanie. Osoby i projekty bez przypisań także pozostają w pliku.
+
+Jeżeli chcesz ponownie wczytać plik do programu po edycji w Excelu:
+- zachowaj wszystkie nagłówki i typy wierszy oraz wiersz FORMAT;
+- zachowaj identyfikatory i powiązania Osoba_ID/Projekt_ID;
+- zmieniaj nazwę osoby w wierszu OSOBA, a projektu w wierszu PROJEKT;
+  kolumny Osoba, Projekt, Specjalizacja, Grupa i Nr_tematu w PRZYPISANIE są opisowe
+  i podczas wczytywania nie zmieniają kartotek;
+- zapisz jako CSV UTF-8 (średnik lub przecinek) albo TXT UTF-8 (tabulatory).
+Program wczytuje własny układ tabeli, nie dowolny arkusz Excela.
+Teksty zaczynające się od znaków formuł są poprzedzone apostrofem;
+program usuwa to oznaczenie przy ponownym odczycie.
+Zalecane jest zachowanie kopii oryginalnego pliku przed edycją w Excelu.
+
+WERYFIKACJA TEJ WERSJI
+Testy obejmują CSV/TXT, ponowny import, opisy z separatorami i nowymi liniami,
+polskie znaki, filtry i ustawienia, odczyt starego JSON oraz bezpieczeństwo
+zapisu przy błędzie. Okno Windows i import w samym Excelu nie były tu testowane.
+
+POPRAWKA WYKRYWANIA PYTHONA
+Skrypt nie wymaga już dokładnie wersji 3.12. Sprawdza zainstalowane wersje
+3.15, 3.14, 3.13, 3.12, 3.11, 3.10, a następnie komendę python z PATH.
+Przy braku zgodnej wersji pokazuje listę wykrytych instalacji.
+Skrypt nie instaluje sam Pythona ani nie usuwa istniejącego środowiska.
+
+PYTHON 3.15
+Skrypt wykrywa Python 3.15 64-bit. Dla Python 3.14/3.15 wymaga pythonnet
+co najmniej 3.2.1 oraz PyInstaller co najmniej 6.22.3.
+Rozpakuj tę wersję do nowego folderu i uruchom ZBUDUJ_EXE.bat.
+Działanie aplikacji i budowanie EXE na Windows z Python 3.15 wymagają
+weryfikacji na Twoim komputerze; nie wykonano tutaj testu na Windows.
+
+EKSPORT DANYCH OSÓB
+Wiersz OSOBA zawiera ID, imię i nazwisko, specjalizację oraz grupę, również
+dla osób bez przypisań. Wiersz PRZYPISANIE zawiera dodatkowo specjalizację
+i grupę przypisanej osoby. Dotyczy to formatów XLSX, CSV i TXT.
+Po aktualizacji programu ponownie zapisz plan, aby uzupełnić te kolumny
+w istniejącym pliku. Zmiany specjalizacji i grupy w Excelu wprowadzaj
+w wierszach OSOBA; pola opisowe w PRZYPISANIE są odświeżane przy zapisie.
+
+GRUPA I FILTR SPECJALIZACJI
+Grupa w formularzu osoby jest zwykłym polem tekstowym bez listy podpowiedzi.
+Specjalizacja na kalendarzu pozwala zaznaczyć wiele wartości lub opcję
+Bez specjalizacji. Brak zaznaczeń oznacza wszystkie specjalizacje. Filtr
+łączy się z osobami, tematami i grupą oraz zapisuje się w pliku XLSX/CSV/TXT.
+Nazwy specjalizacji różniące się wielkością liter są łączone w filtrze.
+
+BEZPOŚREDNI ZAPIS I ODCZYT EXCEL (.xlsx)
+Domyślny format nowych planów to Excel (.xlsx). Nie wymaga instalacji Excela.
+Aby przenieść starszy plan: Otwórz CSV/TXT/JSON, wybierz Excel (.xlsx)
+i kliknij Zapisz jako. Dotychczasowy plik pozostanie zachowany.
+Arkusze:
+- Osoby: ID, Nazwa, Specjalizacja, Grupa — także osoby bez przypisań.
+- Projekty: ID, Nazwa, Skrot, Nr_tematu, Opis, Kolor.
+- Przypisania: powiązania ID, dane opisowe osób/projektów, Od, Do,
+  Zaangazowanie_proc i Notatka.
+- Ustawienia: wersja formatu, ustawienia wyświetlania oraz zapisane filtry.
+
+Możesz edytować dane w Excelu i ponownie otworzyć XLSX w programie.
+Zachowaj cztery nazwy arkuszy, nagłówki, wiersz format w Ustawieniach
+oraz unikalne ID i powiązania Osoba_ID/Projekt_ID. Kolejność kolumn może
+się zmieniać. Nowe wiersze wymagają unikalnego ID i wszystkich danych.
+Specjalizację i grupę edytuj w Osoby. Odpowiednie kolumny w Przypisania
+są opisowe, odświeżane przy kolejnym zapisie z programu.
+Daty są rzeczywistymi datami Excela; można też wpisać tekst RRRR-MM-DD.
+Zaangazowanie_proc to liczba 1–100, np. 75 (nie wartość 0,75 ani format %).
+ID i numery tematów zapisujemy jako tekst, zachowując początkowe zera.
+Wpisuj wartości, nie formuły. Program odrzuca formuły i błędy komórek.
+Plik musi mieć układ programu — nie jest to import dowolnego XLSX ani XLS.
+Przy zapisie program odtwarza cztery arkusze; własne formatowanie nie jest
+zachowywane. Analizy i dodatkowe arkusze prowadź w osobnej kopii pliku.
+Zamknij plik w Excelu przed zapisaniem go z programu. Nie edytuj tej samej
+kopii równocześnie w obu aplikacjach. Limit pliku wynosi 5 MB.
+
+AKTUALIZACJA
+Rozpakuj ten ZIP do nowego folderu. Uruchom URUCHOM.bat, aby zainstalować
+również openpyxl, albo ZBUDUJ_EXE.bat, aby zbudować nową wersję EXE.
+Stary EXE nie otrzyma zmian automatycznie. Zachowaj swoje pliki planów.
+Testy automatyczne obejmują zapis/odczyt XLSX, edycję danych, typy dat,
+polskie znaki, filtry, błędne pliki i ochronę poprzedniej wersji przy błędzie
+zapisu. Nie wykonano testu okna ani budowania EXE na Windows.
+
+SZEROKOŚĆ KALENDARZA
+Kalendarz automatycznie wypełnia dostępną szerokość okna. Kolumny dni
+i tygodni dopasowują się po zmianie rozmiaru okna lub przeniesieniu
+na inny monitor. Usunięto limit szerokości dla dużych ekranów.
+Dla półrocza i roku wybierz kolumny Tygodnie, aby nagłówki były czytelne.
+Na wąskim ekranie długie etykiety są przycinane; pełne dane przypisania
+są dostępne po wskazaniu paska lub otwarciu jego edycji.
+
+POPRAWKA ZAMYKANIA OKNA
+Usunięto oczekiwanie na JavaScript podczas obsługi krzyżyka okna.
+Zamykanie korzysta z natywnego potwierdzenia, także dla zapisanego planu.
+Wybierz Nie, aby wrócić do programu i zapisać zmiany; Tak, aby zamknąć.
+Podczas operacji na pliku zamknięcie jest anulowane bez oczekiwania.
+Po zakończeniu operacji kliknij krzyżyk ponownie.
+Jeżeli poprzednia wersja już się zawiesiła, zakończ ją w Menedżerze zadań
+(Ctrl+Shift+Esc). Niezapisane zmiany tej sesji mogą zostać utracone.
+Rozpakuj aktualny ZIP do nowego folderu. Uruchom URUCHOM.bat lub zbuduj
+nowy EXE przez ZBUDUJ_EXE.bat. Stary EXE nadal zawiera poprzedni kod.

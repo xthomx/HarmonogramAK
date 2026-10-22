@@ -1,0 +1,79 @@
+"""Single-table, Excel-readable CSV/TXT. Native JSON remains import-only."""
+import csv
+import io
+import json
+
+FIELDS = ['Typ', 'ID', 'Nazwa', 'Specjalizacja', 'Grupa', 'Skrot', 'Nr_tematu', 'Opis', 'Kolor',
+          'Osoba_ID', 'Projekt_ID', 'Osoba', 'Projekt', 'Od', 'Do', 'Zaangazowanie_proc', 'Notatka', 'Ustawienie', 'Wartosc']
+MAPS = {
+    'OSOBA': ('people', {'id':'ID','name':'Nazwa','role':'Specjalizacja','group':'Grupa'}),
+    'PROJEKT': ('projects', {'id':'ID','name':'Nazwa','shortName':'Skrot','topicNumber':'Nr_tematu','description':'Opis','color':'Kolor'}),
+    'PRZYPISANIE': ('assignments', {'id':'ID','person':'Osoba_ID','project':'Projekt_ID','start':'Od','end':'Do','load':'Zaangazowanie_proc','note':'Notatka'})}
+DANGEROUS = "=+-@\t\r\n'"
+
+def safe(value):
+    value = str(value)
+    return "'" + value if value and value[0] in DANGEROUS else value
+
+def unsafe(value):
+    return value[1:] if len(value)>1 and value[0]=="'" and value[1] in DANGEROUS else value
+
+def dumps(plan, extension):
+    out = io.StringIO(newline='')
+    writer = csv.DictWriter(out, fieldnames=FIELDS, delimiter='\t' if extension=='.txt' else ';', lineterminator='\r\n')
+    writer.writeheader()
+    def write(row): writer.writerow({k:safe(v) for k,v in row.items()})
+    write({'Typ':'FORMAT','Wartosc':'PLAN_ZESPOLU_1'})
+    for typ,(key,mapping) in MAPS.items():
+        for item in plan[key]:
+            row={'Typ':typ, **{col:item.get(prop,'') for prop,col in mapping.items()}}
+            if typ=='PRZYPISANIE':
+                person=next((p for p in plan['people'] if p['id']==item['person']),{})
+                project=next((p for p in plan['projects'] if p['id']==item['project']),{})
+                row.update(Osoba=person.get('name',''),Projekt=project.get('name',''),Specjalizacja=person.get('role',''),Grupa=person.get('group',''),Nr_tematu=project.get('topicNumber',''))
+            write(row)
+    write({'Typ':'USTAWIENIE','Ustawienie':'demo','Wartosc':str(bool(plan.get('demo',False))).lower()})
+    for key,value in plan.get('calendarDisplay',{}).items():
+        if key in ('label','unit','showLoad'):
+            write({'Typ':'USTAWIENIE','Ustawienie':'display.'+key,'Wartosc':str(value).lower() if isinstance(value,bool) else value})
+    for key,value in plan.get('calendarFilters',{}).items():
+        if key in ('project','person','group','specialization'):
+            for v in (value or ['']) if isinstance(value,list) else [value]:
+                write({'Typ':'USTAWIENIE','Ustawienie':'filter.'+key,'Wartosc':v})
+    return out.getvalue()
+
+def loads(text, extension):
+    if extension=='.json': return json.loads(text)
+    delimiter='\t' if extension=='.txt' else ';'
+    # Accept comma CSV produced by Excel in other regional settings.
+    header=text.splitlines()[0] if text else ''
+    if extension=='.csv' and ';' not in header and ',' in header: delimiter=','
+    reader=csv.DictReader(io.StringIO(text,newline=''),delimiter=delimiter,strict=True)
+    if not reader.fieldnames or set(FIELDS)-set(reader.fieldnames) or len(set(reader.fieldnames))!=len(reader.fieldnames):
+        raise ValueError('Nieprawidłowe nagłówki tabeli planu.')
+    plan={'people':[],'projects':[],'assignments':[],'demo':False,'calendarDisplay':{},'calendarFilters':{'project':[],'person':[],'group':''}}
+    found=False
+    for raw in reader:
+        if None in raw or any(v is None for v in raw.values()): raise ValueError('Nieprawidłowa liczba kolumn.')
+        row={k:unsafe(v) for k,v in raw.items()}
+        if not any(row.values()): continue
+        typ=row['Typ']
+        if typ=='FORMAT':
+            if found or row['Wartosc']!='PLAN_ZESPOLU_1': raise ValueError('Nieobsługiwana wersja pliku.')
+            found=True
+        elif typ in MAPS:
+            key,mapping=MAPS[typ];item={prop:row[col] for prop,col in mapping.items()}
+            if typ=='PRZYPISANIE': item['load']=int(item['load'])
+            plan[key].append(item)
+        elif typ=='USTAWIENIE':
+            key,value=row['Ustawienie'],row['Wartosc']
+            if key=='demo': plan['demo']=value=='true'
+            elif key in ('display.label','display.unit','display.showLoad'):
+                plan['calendarDisplay'][key[8:]]=value=='true' if key=='display.showLoad' else value
+            elif key in ('filter.project','filter.person','filter.specialization'): 
+                selected=plan['calendarFilters'].setdefault(key[7:],[])
+                if value: selected.append(value)
+            elif key=='filter.group': plan['calendarFilters']['group']=value
+        else: raise ValueError('Nieznany typ wiersza: '+typ)
+    if not found: raise ValueError('Brak wiersza wersji formatu.')
+    return plan
