@@ -16,10 +16,10 @@ jobs:
       run:
         shell: pwsh
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           architecture: x64
@@ -62,7 +62,7 @@ jobs:
           Compress-Archive -Path dist/PlanZespolu -DestinationPath "$env:GITHUB_WORKSPACE/release/HarmonogramAK-Windows-x64.zip"
           $hash = (Get-FileHash "$env:GITHUB_WORKSPACE/release/HarmonogramAK-Windows-x64.zip" -Algorithm SHA256).Hash.ToLower()
           "$hash  HarmonogramAK-Windows-x64.zip" | Set-Content "$env:GITHUB_WORKSPACE/release/SHA256SUMS.txt"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: HarmonogramAK-Windows-x64-${{ github.run_number }}
           path: release/*
@@ -76,7 +76,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: HarmonogramAK-Windows-x64-${{ github.run_number }}
           path: release
