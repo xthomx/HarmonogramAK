@@ -1,0 +1,95 @@
+name: Windows EXE
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Find desktop project
+        id: project
+        run: |
+          $candidates = @(git ls-files -- '*main.py' | Where-Object {
+            (Split-Path $_ -Leaf) -eq 'main.py'
+          } | ForEach-Object {
+            $dir = Split-Path $_ -Parent
+            if (-not $dir) { $dir = '.' }
+            if ((Test-Path "$dir/xlsx_format.py") -and
+                (Test-Path "$dir/requirements.txt") -and
+                (Test-Path "$dir/ui/app.js") -and
+                (Test-Path "$dir/tests/test_files.py")) { $dir }
+          })
+          if ($candidates.Count -ne 1) {
+            throw 'Expected exactly one unpacked desktop project (main.py, xlsx_format.py, ui, tests, requirements.txt). Upload source files, not only ZIP.'
+          }
+          "dir=$($candidates[0])" >> $env:GITHUB_OUTPUT
+      - name: Install dependencies
+        working-directory: ${{ steps.project.outputs.dir }}
+        run: |
+          python -m pip install --upgrade pip
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pip install -r requirements.txt
+      - name: Run tests
+        working-directory: ${{ steps.project.outputs.dir }}
+        run: python -m unittest discover -s tests -v
+      - name: Build Windows application
+        working-directory: ${{ steps.project.outputs.dir }}
+        run: python -m PyInstaller --noconfirm --clean --onedir --windowed --name PlanZespolu --add-data "ui;ui" --collect-all webview main.py
+      - name: Package complete application
+        working-directory: ${{ steps.project.outputs.dir }}
+        run: |
+          if (-not (Test-Path 'dist/PlanZespolu/PlanZespolu.exe')) { throw 'EXE missing' }
+          Copy-Item INSTRUKCJA.txt dist/PlanZespolu/
+          "Commit: $env:GITHUB_SHA`nBuild: $env:GITHUB_RUN_NUMBER" | Set-Content dist/PlanZespolu/BUILD.txt
+          New-Item -ItemType Directory -Force "$env:GITHUB_WORKSPACE/release" | Out-Null
+          Compress-Archive -Path dist/PlanZespolu -DestinationPath "$env:GITHUB_WORKSPACE/release/HarmonogramAK-Windows-x64.zip"
+          $hash = (Get-FileHash "$env:GITHUB_WORKSPACE/release/HarmonogramAK-Windows-x64.zip" -Algorithm SHA256).Hash.ToLower()
+          "$hash  HarmonogramAK-Windows-x64.zip" | Set-Content "$env:GITHUB_WORKSPACE/release/SHA256SUMS.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HarmonogramAK-Windows-x64-${{ github.run_number }}
+          path: release/*
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: HarmonogramAK-Windows-x64-${{ github.run_number }}
+          path: release
+      - name: Publish version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo 'Release already exists; leaving existing assets unchanged.'
+          else
+            gh release create "$RELEASE_TAG" release/* --verify-tag --title "HarmonogramAK $RELEASE_TAG" --generate-notes
+          fi
