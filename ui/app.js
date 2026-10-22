@@ -69,3 +69,28 @@ $('#import').onclick=openPlan;$('#export').onclick=()=>savePlan();$('#save-as').
 $('#file').onchange=async e=>{const file=e.target.files[0];if(!file)return;fileBusy=true;updateFileStatus();try{await readPlanFile(file)}catch{fileNotice='Nieprawidłowy plik — bieżący plan pozostał bez zmian.';toast(fileNotice)}finally{e.target.value='';fileBusy=false;updateFileStatus()}};
 // Native host checks dirty state before closing the window.
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();if(!$('#modal').open)savePlan(e.shiftKey);else toast('Najpierw zastosuj zmiany w formularzu.')}});
+
+// Update checks are independent of file operations and never change the plan.
+async function showAppVersion(){try{const api=await desktopApi();$('#app-version').textContent='Wersja '+await api.get_version()}catch{}}
+window.addEventListener('pywebviewready',showAppVersion);
+if(window.pywebview?.api)showAppVersion();
+$('#check-updates').onclick=async()=>{
+ const button=$('#check-updates'),status=$('#update-status'),download=$('#download-update');
+ button.disabled=true;download.hidden=true;status.textContent='Sprawdzanie aktualizacji…';
+ try{
+  const api=await desktopApi(),result=await api.check_updates();
+  if(result.current)$('#app-version').textContent='Wersja '+result.current;
+  if(result.status==='available'){
+   status.textContent='Dostępna wersja '+result.latest+'. Zapisz plan, pobierz nową paczkę i zamknij program przed jej rozpakowaniem.';
+   download.hidden=false;
+  }else if(result.status==='current')status.textContent='Masz aktualną wersję ('+result.current+').';
+  else if(result.status==='pending')status.textContent='Wersja '+result.latest+' nie ma jeszcze gotowej paczki Windows. Spróbuj później.';
+  else if(result.status==='unavailable')status.textContent='Nie opublikowano jeszcze stabilnego wydania w GitHub Releases.';
+  else status.textContent=result.message||'Nie udało się sprawdzić aktualizacji.';
+ }catch(e){status.textContent='Nie udało się sprawdzić aktualizacji. '+e.message}
+ finally{button.disabled=false}
+};
+$('#download-update').onclick=async()=>{
+ try{const api=await desktopApi();await api.open_updates_page()}
+ catch(e){$('#update-status').textContent=e.message}
+};

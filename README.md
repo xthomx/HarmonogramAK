@@ -23,3 +23,16 @@ GitHub buduje na Windows 2022 z Python 3.12 x64 niezależnie od wersji Pythona n
 Zapisz dane i zamknij program. Rozpakuj nową wersję do nowego folderu i otwórz swój plan. Pliki danych trzymaj poza folderem aplikacji i repozytorium. Automatyczna instalacja aktualizacji w aplikacji nie jest jeszcze zaimplementowana.
 
 Zmiany z rozmowy ChatGPT muszą zostać przesłane do repozytorium, aby rozpoczęła się budowa. Testy automatyczne nie zastępują sprawdzenia interfejsu Windows.
+
+## Sprawdzanie aktualizacji w programie
+W panelu bocznym kliknij **Sprawdź aktualizacje**. Program na żądanie sprawdza
+najnowsze stabilne GitHub Release i porównuje je z wersją w `app_version.py`.
+Nie wysyła danych planu. Przy braku internetu praca lokalna pozostaje dostępna.
+Gdy jest nowsza wersja z paczką Windows, przycisk otwiera stronę pobierania.
+Zapisz plan i zamknij program przed wymianą aplikacji. Dane trzymaj osobno.
+Nie ma automatycznej instalacji ani sprawdzania w tle.
+
+Przed wydaniem zwiększ `APP_VERSION` w `app_version.py`, np. do `1.0.1`,
+i wyślij tag `v1.0.1`. Budowa sprawdza zgodność taga z wersją. Sam artefakt
+z Actions nie jest wydaniem: bez opublikowanego Release program wyświetla
+informację, że nie ma jeszcze stabilnych wydań.

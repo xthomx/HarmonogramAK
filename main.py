@@ -8,6 +8,8 @@ import threading
 import uuid
 from plan_format import dumps, loads
 import xlsx_format
+from app_version import APP_VERSION
+from updates import check_updates, RELEASES_URL
 
 MAX_BYTES = 5_000_000
 
@@ -52,6 +54,19 @@ class Api:
         self._path = None
         self._pending = None
         self._lock = threading.Lock()
+
+    def get_version(self):
+        return APP_VERSION
+
+    def check_updates(self):
+        # pywebview executes API calls outside the UI thread.
+        return check_updates()
+
+    def open_updates_page(self):
+        import webbrowser
+        if not webbrowser.open(RELEASES_URL):
+            raise RuntimeError('Nie udało się otworzyć przeglądarki. Wejdź na github.com/xthomx/HarmonogramAK/releases.')
+        return True
 
     def can_close(self):
         """Never block the UI while a file operation owns the lock."""

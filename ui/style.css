@@ -69,3 +69,5 @@ main{min-width:0}
   .row>.label .avatar{display:none}
   .week-column strong,.day b{font-size:9px}
 }
+
+.update-panel{border-bottom:1px solid #39534b;padding-bottom:10px;margin-bottom:10px}.update-panel>span{color:#a8c0b7;font-size:11px}.aside-bottom #update-status{display:block;white-space:normal;overflow-wrap:anywhere;line-height:1.4;margin:8px 0}.update-panel button:disabled{opacity:.6;cursor:wait}
