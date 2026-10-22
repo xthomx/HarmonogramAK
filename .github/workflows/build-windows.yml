@@ -4,12 +4,20 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: 'Opublikuj wydanie w Releases (wersja z app_version.py)'
+        type: boolean
+        default: true
+        required: true
 
 permissions:
   contents: read
 
 jobs:
   build:
+    outputs:
+      release_tag: ${{ steps.version.outputs.tag }}
     runs-on: windows-2022
     timeout-minutes: 25
     defaults:
@@ -46,6 +54,13 @@ jobs:
           python -m pip install --upgrade pip
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m pip install -r requirements.txt
+      - name: Read application version
+        id: version
+        working-directory: ${{ steps.project.outputs.dir }}
+        run: |
+          $tag = python -c "from app_version import APP_VERSION; from updates import version_tuple; version_tuple(APP_VERSION); print('v' + APP_VERSION)"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "tag=$tag" >> $env:GITHUB_OUTPUT
       - name: Check release version
         if: startsWith(github.ref, 'refs/tags/')
         working-directory: ${{ steps.project.outputs.dir }}
@@ -74,8 +89,11 @@ jobs:
           retention-days: 30
 
   release:
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish_release)
     needs: build
+    concurrency:
+      group: release-${{ needs.build.outputs.release_tag }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -88,12 +106,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ needs.build.outputs.release_tag }}
+          RELEASE_COMMIT: ${{ github.sha }}
         shell: bash
         run: |
           set -euo pipefail
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            echo 'Release already exists; leaving existing assets unchanged.'
+            echo "Release $RELEASE_TAG already exists. Increase APP_VERSION for a new release." >> "$GITHUB_STEP_SUMMARY"
           else
-            gh release create "$RELEASE_TAG" release/* --verify-tag --title "HarmonogramAK $RELEASE_TAG" --generate-notes
+            gh release create "$RELEASE_TAG" release/* --target "$RELEASE_COMMIT" --title "HarmonogramAK $RELEASE_TAG" --generate-notes
           fi
