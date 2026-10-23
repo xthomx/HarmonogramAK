@@ -93,4 +93,39 @@ section#catalog.compact-catalog{overflow-x:auto}
 .compact-catalog .catalog-row button{margin:0;padding:3px 7px;font-size:11px;line-height:16px;min-height:24px}
 .compact-catalog .swatch{display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:2px;vertical-align:middle}
 
-.demo-tools{margin-top:8px}.demo-tools button{padding:3px 0;border:0;background:transparent;color:#88a29b;font-size:10px;text-decoration:underline}
+
+
+/* Compact schedule controls leave the remaining window height to the timeline. */
+body.schedule-view main{padding:12px 18px}
+body.schedule-view header{margin-bottom:8px;gap:10px}
+body.schedule-view header h1{font-size:21px;margin:0;line-height:30px}
+body.schedule-view header .primary{padding:6px 10px;font-size:12px}
+body.schedule-view .toolbar{padding:7px 10px;gap:7px}
+body.schedule-view .period{gap:4px}
+body.schedule-view .period h2{font-size:13px;margin:0 4px;max-width:300px}
+body.schedule-view .period button{padding:4px 8px}
+body.schedule-view .filters{gap:5px}
+body.schedule-view .filters input{width:175px}
+body.schedule-view .filters input,body.schedule-view .filters select{padding:5px 6px;font-size:11px}
+body.schedule-view .calendar-filters{padding:0 10px 5px;gap:6px}
+body.schedule-view .calendar-filters>.multi-filter,body.schedule-view .calendar-filters>label{min-width:120px;max-width:none;flex:1;font-size:11px}
+body.schedule-view .multi-filter>span{font-size:10px;margin-bottom:2px}
+body.schedule-view .multi-filter summary,body.schedule-view #filter-group{padding:4px 6px;font-size:11px}
+body.schedule-view #reset-filters{padding:4px 7px;font-size:10px}
+body.schedule-view #filter-summary{font-size:10px;line-height:13px}
+.calendar-settings{padding:3px 10px 5px;border-top:1px solid #edf0f3}
+.calendar-settings>summary{cursor:pointer;font-size:11px;color:#667285;line-height:18px}
+.calendar-settings .display-options{padding:6px 0 2px;font-size:11px}
+body.schedule-view .legend{padding:5px 10px;font-size:9px;gap:5px 12px}
+body.schedule-view footer{margin-top:5px;font-size:9px}
+@media(min-width:701px) and (min-height:650px){
+ body.schedule-view main{height:100dvh;display:flex;flex-direction:column}
+ body.schedule-view header,body.schedule-view footer{flex-shrink:0}
+ body.schedule-view #plan{flex:1;min-height:0;display:flex;flex-direction:column}
+ body.schedule-view #plan>.toolbar,body.schedule-view #plan>.calendar-filters,body.schedule-view #plan>.calendar-settings,body.schedule-view #plan>.legend{flex-shrink:0}
+ body.schedule-view .chart-scroll{flex:1;min-height:100px}
+ body.schedule-view .row.head{position:sticky;top:0;z-index:6;background:white}
+ body.schedule-view .row.month-head{position:sticky;top:0;z-index:7;height:28px;background:white}
+ body.schedule-view .month-head .label,body.schedule-view .month-segments>div{padding-top:5px;padding-bottom:5px;line-height:17px}
+ body.schedule-view .month-head+.head{top:28px}
+}
