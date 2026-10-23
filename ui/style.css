@@ -80,7 +80,7 @@ main{min-width:0}
 section#catalog.compact-catalog{overflow-x:auto}
 .compact-catalog .catalog-table{min-width:560px}
 .compact-catalog .catalog-heading,.compact-catalog .catalog-row{display:grid;align-items:center;gap:10px;padding:4px 12px;min-height:32px;line-height:1.25}
-.compact-catalog .project-columns{grid-template-columns:minmax(65px,.7fr) minmax(70px,.7fr) minmax(100px,1.7fr) minmax(80px,1.5fr) 68px 55px}
+.compact-catalog .project-columns{grid-template-columns:minmax(70px,.7fr) minmax(65px,.7fr) minmax(100px,1.7fr) minmax(80px,1.5fr) 68px 55px}
 .compact-catalog .people-columns{grid-template-columns:minmax(130px,1.6fr) minmax(100px,1.2fr) minmax(90px,1fr) 68px 55px}
 .compact-catalog .catalog-heading{min-height:29px;background:#eef4f1;font-size:10px;color:#667285;font-weight:600;border-bottom:1px solid #dfe5ea}
 .compact-catalog .catalog-row{font-size:12px}
@@ -92,3 +92,5 @@ section#catalog.compact-catalog{overflow-x:auto}
 .compact-catalog .catalog-count{text-align:center;font-variant-numeric:tabular-nums}
 .compact-catalog .catalog-row button{margin:0;padding:3px 7px;font-size:11px;line-height:16px;min-height:24px}
 .compact-catalog .swatch{display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:2px;vertical-align:middle}
+
+.demo-tools{margin-top:8px}.demo-tools button{padding:3px 0;border:0;background:transparent;color:#88a29b;font-size:10px;text-decoration:underline}
