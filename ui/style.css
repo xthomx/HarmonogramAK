@@ -75,3 +75,20 @@ main{min-width:0}
 .assignment-people{border:1px solid #dce3e9;border-radius:6px;margin:0;padding:10px;min-width:0}.assignment-people legend{font-size:12px;color:#667285}.assignment-people-list{max-height:190px;overflow:auto;display:grid;gap:5px}.assignment-people-list label{display:flex;align-items:center;gap:8px;padding:5px;cursor:pointer}.assignment-people-list input{width:16px;height:16px;flex-shrink:0;accent-color:#28785a}.assignment-people-list span{min-width:0;overflow-wrap:anywhere}.assignment-people-list small{display:block;color:#89949f;font-size:10px}.modal-actions{flex-wrap:wrap}#copy-assignment{font-size:12px}
 
 .catalog-details{flex:1}.project-identity{display:grid;grid-template-columns:minmax(80px,1fr) minmax(90px,1fr) minmax(140px,3fr);gap:16px}.project-identity>div{min-width:0;overflow-wrap:anywhere}.project-identity small{display:block;color:#7d8795;font-size:10px;margin-bottom:4px}.project-identity strong{font-size:13px}@media(max-width:700px){.project-identity{grid-template-columns:1fr 1fr;gap:10px}.project-identity>div:last-child{grid-column:1/-1}}
+
+/* Dense catalog rows: one shared header, one line per person/project. */
+section#catalog.compact-catalog{overflow-x:auto}
+.compact-catalog .catalog-table{min-width:560px}
+.compact-catalog .catalog-heading,.compact-catalog .catalog-row{display:grid;align-items:center;gap:10px;padding:4px 12px;min-height:32px;line-height:1.25}
+.compact-catalog .project-columns{grid-template-columns:minmax(65px,.7fr) minmax(70px,.7fr) minmax(100px,1.7fr) minmax(80px,1.5fr) 68px 55px}
+.compact-catalog .people-columns{grid-template-columns:minmax(130px,1.6fr) minmax(100px,1.2fr) minmax(90px,1fr) 68px 55px}
+.compact-catalog .catalog-heading{min-height:29px;background:#eef4f1;font-size:10px;color:#667285;font-weight:600;border-bottom:1px solid #dfe5ea}
+.compact-catalog .catalog-row{font-size:12px}
+.compact-catalog .catalog-row:nth-child(odd){background:#fafbfc}
+.compact-catalog .catalog-row:hover{background:#eef5f0}
+.compact-catalog .catalog-cell{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.compact-catalog .catalog-name{font-weight:600}
+.compact-catalog .catalog-description{color:#7b8795;font-size:11px}
+.compact-catalog .catalog-count{text-align:center;font-variant-numeric:tabular-nums}
+.compact-catalog .catalog-row button{margin:0;padding:3px 7px;font-size:11px;line-height:16px;min-height:24px}
+.compact-catalog .swatch{display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:2px;vertical-align:middle}
