@@ -11,7 +11,7 @@ class Formats(unittest.TestCase):
     def setUp(self):
         self.plan={'demo':False,'people':[{'id':'p1','name':'Łukasz; "Test"','role':'PLC','group':'Robotyk'}],
           'projects':[{'id':'j1','name':"=NieFormuła",'shortName':'A','topicNumber':'0012','description':'Pierwsza linia\nDruga; z tabulatorem\t!','color':'#347c68'}],
-          'assignments':[{'id':'a1','person':'p1','project':'j1','start':'2026-10-22','end':'2027-01-02','load':75,'note':"'cytat"}],
+          'assignments':[{'id':'a1','person':'p1','project':'j1','start':'2026-10-22','end':'2027-01-02','load':75,'stage':'Offline','note':"'cytat"}],
           'calendarDisplay':{'label':'topicNumber','unit':'weeks','showLoad':False},
           'calendarFilters':{'project':['j1'],'person':['p1'],'group':'group:robotyk'}}
 

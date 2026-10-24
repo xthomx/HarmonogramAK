@@ -4,11 +4,17 @@ import io
 import json
 
 FIELDS = ['Typ', 'ID', 'Nazwa', 'Specjalizacja', 'Grupa', 'Skrot', 'Nr_tematu', 'Opis', 'Kolor',
-          'Osoba_ID', 'Projekt_ID', 'Osoba', 'Projekt', 'Od', 'Do', 'Zaangazowanie_proc', 'Notatka', 'Ustawienie', 'Wartosc']
+          'Osoba_ID', 'Projekt_ID', 'Osoba', 'Projekt', 'Od', 'Do', 'Zaangazowanie_proc', 'Notatka', 'Ustawienie', 'Wartosc', 'Etap']
 MAPS = {
     'OSOBA': ('people', {'id':'ID','name':'Nazwa','role':'Specjalizacja','group':'Grupa'}),
     'PROJEKT': ('projects', {'id':'ID','name':'Nazwa','shortName':'Skrot','topicNumber':'Nr_tematu','description':'Opis','color':'Kolor'}),
-    'PRZYPISANIE': ('assignments', {'id':'ID','person':'Osoba_ID','project':'Projekt_ID','start':'Od','end':'Do','load':'Zaangazowanie_proc','note':'Notatka'})}
+    'PRZYPISANIE': ('assignments', {'id':'ID','person':'Osoba_ID','project':'Projekt_ID','start':'Od','end':'Do','load':'Zaangazowanie_proc','note':'Notatka','stage':'Etap'})}
+def stage(value):
+    value = (value or 'Offline').strip() or 'Offline'
+    if value not in ('Offline', 'Uruchomienie'):
+        raise ValueError('Etap musi mieć wartość Offline albo Uruchomienie.')
+    return value
+
 DANGEROUS = "=+-@\t\r\n'"
 
 def safe(value):
@@ -28,6 +34,7 @@ def dumps(plan, extension):
         for item in plan[key]:
             row={'Typ':typ, **{col:item.get(prop,'') for prop,col in mapping.items()}}
             if typ=='PRZYPISANIE':
+                row['Etap'] = stage(item.get('stage'))
                 person=next((p for p in plan['people'] if p['id']==item['person']),{})
                 project=next((p for p in plan['projects'] if p['id']==item['project']),{})
                 row.update(Osoba=person.get('name',''),Projekt=project.get('name',''),Specjalizacja=person.get('role',''),Grupa=person.get('group',''),Nr_tematu=project.get('topicNumber',''))
@@ -49,7 +56,7 @@ def loads(text, extension):
     header=text.splitlines()[0] if text else ''
     if extension=='.csv' and ';' not in header and ',' in header: delimiter=','
     reader=csv.DictReader(io.StringIO(text,newline=''),delimiter=delimiter,strict=True)
-    if not reader.fieldnames or set(FIELDS)-set(reader.fieldnames) or len(set(reader.fieldnames))!=len(reader.fieldnames):
+    if not reader.fieldnames or (set(FIELDS)-{'Etap'})-set(reader.fieldnames) or len(set(reader.fieldnames))!=len(reader.fieldnames):
         raise ValueError('Nieprawidłowe nagłówki tabeli planu.')
     plan={'people':[],'projects':[],'assignments':[],'demo':False,'calendarDisplay':{},'calendarFilters':{'project':[],'person':[],'group':''}}
     found=False
@@ -62,8 +69,10 @@ def loads(text, extension):
             if found or row['Wartosc']!='PLAN_ZESPOLU_1': raise ValueError('Nieobsługiwana wersja pliku.')
             found=True
         elif typ in MAPS:
-            key,mapping=MAPS[typ];item={prop:row[col] for prop,col in mapping.items()}
-            if typ=='PRZYPISANIE': item['load']=int(item['load'])
+            key,mapping=MAPS[typ];item={prop:row.get(col,'') for prop,col in mapping.items()}
+            if typ=='PRZYPISANIE':
+                item['load']=int(item['load'])
+                item['stage']=stage(item.get('stage'))
             plan[key].append(item)
         elif typ=='USTAWIENIE':
             key,value=row['Ustawienie'],row['Wartosc']

@@ -10,7 +10,7 @@ import plan_format as table
 SHEETS = {
     'Osoby': ('OSOBA', ['ID', 'Nazwa', 'Specjalizacja', 'Grupa']),
     'Projekty': ('PROJEKT', ['ID', 'Nazwa', 'Skrot', 'Nr_tematu', 'Opis', 'Kolor']),
-    'Przypisania': ('PRZYPISANIE', ['ID', 'Osoba_ID', 'Projekt_ID', 'Osoba', 'Specjalizacja', 'Grupa', 'Projekt', 'Nr_tematu', 'Od', 'Do', 'Zaangazowanie_proc', 'Notatka']),
+    'Przypisania': ('PRZYPISANIE', ['ID', 'Osoba_ID', 'Projekt_ID', 'Osoba', 'Specjalizacja', 'Grupa', 'Projekt', 'Nr_tematu', 'Od', 'Do', 'Zaangazowanie_proc', 'Notatka', 'Etap']),
     'Ustawienia': ('USTAWIENIE', ['Ustawienie', 'Wartosc']),
 }
 
@@ -73,7 +73,9 @@ def loads(raw):
             iterator = sheet.iter_rows()
             header = next(iterator, ())
             names = [cell.value for cell in header]
-            if len(names) != len(columns) or set(names) != set(columns):
+            expected = set(columns)
+            allowed = [expected, expected - {'Etap'}] if kind == 'PRZYPISANIE' else [expected]
+            if len(names) != len(set(names)) or set(names) not in allowed:
                 raise ValueError('Nieprawidłowe nagłówki w arkuszu: ' + title)
             for cells in iterator:
                 if all(cell.value is None for cell in cells):
