@@ -62,7 +62,16 @@ function makeAssignments(values,selected,people,idFactory){
  if(!values.start||!values.end||values.end<values.start)throw Error('Sprawdź daty przypisania.');
  return ids.map(person=>({id:idFactory(),person,project:values.project,start:values.start,end:values.end,load,note:values.note||''}));
 }
-function open(k,id,preset={}){kind=k;edit=id||null;let x=data[k].find(x=>x.id===id)||preset;if(k==='assignments'&&(!data.people.length||!data.projects.length)){toast('Najpierw dodaj co najmniej jedną osobę i projekt.');return}$('#modal-title').textContent=(id?'Edytuj ':'Dodaj ')+{assignments:'przypisanie',people:'osobę',projects:'projekt'}[k];$('#delete').hidden=!id;$('#copy-assignment').hidden=!(k==='assignments'&&id);if(preset.copyFrom)$('#modal-title').textContent='Kopiuj przypisanie dla innych osób';$('#form-error').textContent='';if(k==='assignments'){$('#fields').innerHTML=`${id?`<label>Osoba<select name="person">${data.people.map(p=>`<option value="${esc(p.id)}" ${x.person===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label>`:assignmentPeople(x)}<label>Projekt — Skrót · Nr tematu · Nazwa projektu<select name="project">${data.projects.map(p=>`<option value="${esc(p.id)}" ${x.project===p.id?'selected':''}>${esc(projectIdentity(p))}</option>`).join('')}</select></label><div class="dates">${field('Od','start',x.start||today,'date','required')}${field('Do (włącznie)','end',x.end||plus(today,6),'date','required')}</div>${field('Zaangażowanie (%)','load',x.load||100,'number','required min="1" max="100" step="1"')}${field('Notatka','note',x.note||'','text','maxlength="250"')}<small>Równoległe przypisania są dozwolone. Suma ponad 100% zostanie oznaczona w kalendarzu.</small>`}else $('#fields').innerHTML=(k==='people'?field('Imię i nazwisko','name',x.name||'','text','required maxlength="80"')+field('Specjalizacja / dział','role',x.role||'','text','maxlength="80"')+field('Grupa','group',x.group||'','text','maxlength="80" placeholder="Wpisz nazwę grupy"')+'<small>Wpisz dowolną nazwę grupy. Puste pole oznacza brak grupy.</small>':field('Nr tematu','topicNumber',x.topicNumber||'','text','maxlength="80"')+field('Skrót','shortName',x.shortName||'','text','maxlength="40"')+field('Nazwa projektu','name',x.name||'','text','required maxlength="80"')+`<label>Opis projektu<textarea name="description" rows="4" maxlength="2000">${esc(x.description||'')}</textarea></label>`+field('Kolor projektu','color',x.color||'#347c68','color'));$('#modal').showModal()}
+
+function splitAssignment(source,secondStart,idFactory){
+ const dateOK=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(+dt(s))&&iso(dt(s))===s;
+ if(!source||!dateOK(source.start)||!dateOK(source.end)||source.start>source.end)throw Error('Sprawdź daty przypisania.');
+ if(source.start===source.end)throw Error('Zadania jednodniowego nie można podzielić.');
+ if(!dateOK(secondStart)||secondStart<=source.start||secondStart>source.end)throw Error('Wybierz pierwszy dzień drugiej części: po początku zadania, nie później niż jego koniec.');
+ return [{...source,end:plus(secondStart,-1)},{...source,id:idFactory(),start:secondStart}];
+}
+
+function open(k,id,preset={}){kind=k;edit=id||null;let x=data[k].find(x=>x.id===id)||preset;if(k==='assignments'&&(!data.people.length||!data.projects.length)){toast('Najpierw dodaj co najmniej jedną osobę i projekt.');return}$('#modal-title').textContent=(id?'Edytuj ':'Dodaj ')+{assignments:'przypisanie',people:'osobę',projects:'projekt'}[k];$('#delete').hidden=!id;$('#copy-assignment').hidden=!(k==='assignments'&&id);$('#split-assignment').hidden=!(k==='assignments'&&id);$('#split-panel').hidden=true;if(preset.copyFrom)$('#modal-title').textContent='Kopiuj przypisanie dla innych osób';$('#form-error').textContent='';if(k==='assignments'){$('#fields').innerHTML=`${id?`<label>Osoba<select name="person">${data.people.map(p=>`<option value="${esc(p.id)}" ${x.person===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label>`:assignmentPeople(x)}<label>Projekt — Skrót · Nr tematu · Nazwa projektu<select name="project">${data.projects.map(p=>`<option value="${esc(p.id)}" ${x.project===p.id?'selected':''}>${esc(projectIdentity(p))}</option>`).join('')}</select></label><div class="dates">${field('Od','start',x.start||today,'date','required')}${field('Do (włącznie)','end',x.end||plus(today,6),'date','required')}</div>${field('Zaangażowanie (%)','load',x.load||100,'number','required min="1" max="100" step="1"')}${field('Notatka','note',x.note||'','text','maxlength="250"')}<small>Równoległe przypisania są dozwolone. Suma ponad 100% zostanie oznaczona w kalendarzu.</small>`}else $('#fields').innerHTML=(k==='people'?field('Imię i nazwisko','name',x.name||'','text','required maxlength="80"')+field('Specjalizacja / dział','role',x.role||'','text','maxlength="80"')+field('Grupa','group',x.group||'','text','maxlength="80" placeholder="Wpisz nazwę grupy"')+'<small>Wpisz dowolną nazwę grupy. Puste pole oznacza brak grupy.</small>':field('Nr tematu','topicNumber',x.topicNumber||'','text','maxlength="80"')+field('Skrót','shortName',x.shortName||'','text','maxlength="40"')+field('Nazwa projektu','name',x.name||'','text','required maxlength="80"')+`<label>Opis projektu<textarea name="description" rows="4" maxlength="2000">${esc(x.description||'')}</textarea></label>`+field('Kolor projektu','color',x.color||'#347c68','color'));$('#modal').showModal()}
 $('#form').onsubmit=e=>{e.preventDefault();const formValues=new FormData(e.target);let x=Object.fromEntries(formValues);if(kind==='assignments'&&!edit){
  try{
   const items=makeAssignments(x,formValues.getAll('people'),data.people,uid);
@@ -144,4 +153,32 @@ $('#copy-assignment').onclick=()=>{
  // Only the new copies receive the current form values; the source is unchanged.
  $('#modal').close();
  open('assignments',null,{...values,people:[],copyFrom:source.person});
+};
+
+$('#split-assignment').onclick=()=>{
+ if(kind!=='assignments'||!edit)return;
+ if(!$('#form').reportValidity())return;
+ const values=Object.fromEntries(new FormData($('#form')));
+ if(values.end<=values.start){$('#form-error').textContent=values.end===values.start?'Zadania jednodniowego nie można podzielić.':'Sprawdź daty przypisania.';return}
+ const input=$('#split-date');
+ input.min=plus(values.start,1);input.max=values.end;
+ input.value=plus(values.start,Math.ceil((dt(values.end)-dt(values.start))/DAY/2));
+ $('#form-error').textContent='';$('#split-panel').hidden=false;input.focus();
+};
+$('#cancel-split').onclick=()=>{$('#split-panel').hidden=true;$('#split-assignment').focus()};
+$('#confirm-split').onclick=()=>{
+ if(kind!=='assignments'||!edit||!$('#form').reportValidity())return;
+ try{
+  const index=data.assignments.findIndex(a=>a.id===edit);
+  if(index<0)throw Error('Przypisanie już nie istnieje.');
+  if(data.assignments.length>=10000)throw Error('Plan może zawierać maksymalnie 10000 przypisań.');
+  const values=Object.fromEntries(new FormData($('#form')));
+  const source={...data.assignments[index],...values,load:Number(values.load)};
+  if(!Number.isInteger(source.load)||source.load<1||source.load>100)throw Error('Zaangażowanie musi wynosić od 1 do 100%.');
+  if(!data.people.some(p=>p.id===source.person)||!data.projects.some(p=>p.id===source.project))throw Error('Wybierz istniejącą osobę i projekt.');
+  const parts=splitAssignment(source,$('#split-date').value,uid);
+  data.assignments.splice(index,1,...parts);
+  save();$('#modal').close();
+  toast('Podzielono zadanie — kliknij Zapisz, aby zapisać plik.');
+ }catch(error){$('#form-error').textContent=error.message}
 };
