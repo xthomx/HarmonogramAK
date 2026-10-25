@@ -24,4 +24,20 @@ function availabilityReport(plan,start,end,mode='under',match='any'){
  }
  return {start,end,days,rows:result};
 }
-if(typeof module!=='undefined'&&module.exports)module.exports={availabilityReport};
+// One coordinate system for selection and report results; inclusive end dates.
+function reportSpan(start,end,visibleStart,visibleEnd){
+ const date=s=>Date.parse(s+'T00:00:00Z'),day=86400000;
+ const length=(date(visibleEnd)-date(visibleStart))/day+1;
+ const first=Math.max(0,(date(start)-date(visibleStart))/day);
+ const last=Math.min(length,(date(end)-date(visibleStart))/day+1);
+ return {left:first/length*100,width:Math.max(0,last-first)/length*100};
+}
+function reportSegments(row,start){
+ const segments=[];
+ row.loads.forEach((load,i)=>{
+  const date=new Date(Date.parse(start+'T00:00:00Z')+i*86400000).toISOString().slice(0,10),previous=segments.at(-1);
+  if(previous&&previous.load===load&&previous.matches===row.qualifies[i])previous.end=date;
+  else segments.push({start:date,end:date,load,matches:row.qualifies[i]});
+ });return segments;
+}
+if(typeof module!=='undefined'&&module.exports)module.exports={availabilityReport,reportSpan,reportSegments};

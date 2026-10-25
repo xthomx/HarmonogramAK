@@ -8,10 +8,19 @@ function renderReports(){
   $('#report-summary').textContent='Okres: '+report.start+' – '+report.end+' · Znaleziono osób: '+total+' / '+data.people.length;
   $('#report-page').textContent='Strona '+(reportPage+1)+' / '+pages;
   $('#report-prev').disabled=reportPage===0;$('#report-next').disabled=reportPage>=pages-1;
-  const dates=Array.from({length:report.days},(_,i)=>plus(report.start,i));
-  const head='<thead><tr><th scope="col" class="report-person">Osoba / dostępność</th>'+dates.map(d=>'<th scope="col" title="'+d+'" class="'+([0,6].includes(dt(d).getUTCDay())?'report-weekend':'')+'">'+d.slice(8)+'.'+d.slice(5,7)+'</th>').join('')+'</tr></thead>';
-  const body=report.rows.slice(reportPage*pageSize,(reportPage+1)*pageSize).map(r=>'<tr><th scope="row" class="report-person" title="'+esc([r.person.name,r.person.role,r.person.group,'Pasujące dni: '+r.count+' / '+report.days].filter(Boolean).join(' · '))+'"><span class="report-person-name">'+esc(r.person.name)+'</span><span class="report-day-count">'+r.count+'/'+report.days+'</span></th>'+r.loads.map((load,i)=>'<td class="'+(load===0?'availability-free':load<100?'availability-partial':load>100?'availability-over':'availability-full')+(r.qualifies[i]?' availability-match':'')+'" title="'+esc(r.person.name)+' · '+dates[i]+' · Zajętość: '+load+'% · Wolne: '+Math.max(0,100-load)+'%">'+load+'%</td>').join('')+'</tr>').join('');
-  calendar.innerHTML=total?'<table class="report-table"><caption class="sr-only">Dzienny kalendarz obciążenia osób w wybranym okresie</caption>'+head+'<tbody>'+body+'</tbody></table>':'<div class="empty">Brak osób spełniających wybrane warunki.</div>';
+  const [visibleStart,visibleEnd]=rangeBounds(),columns=rangeColumns();
+  const grid='<div class="grid-bg">'+columns.map(c=>'<div class="cell '+($('#range-unit').value==='weeks'?'week-cell':[0,6].includes(dt(c.start).getUTCDay())?'weekend':'')+'" style="flex:'+c.count+'"></div>').join('')+'</div>';
+  const body=report.rows.slice(reportPage*pageSize,(reportPage+1)*pageSize).map(r=>{
+   const title=[r.person.name,r.person.role,r.person.group,'Pasujące dni: '+r.count+' / '+report.days].filter(Boolean).join(' · ');
+   const segments=reportSegments(r,report.start).map(segment=>{
+    const span=reportSpan(segment.start,segment.end,visibleStart,visibleEnd);if(!span.width)return '';
+    const load=segment.load,description=r.person.name+' · '+segment.start+' – '+segment.end+' · Zajętość: '+load+'% · Wolne: '+Math.max(0,100-load)+'%';
+    return '<div class="report-result '+(load===0?'availability-free':load<100?'availability-partial':load>100?'availability-over':'availability-full')+(segment.matches?' availability-match':'')+'" style="left:'+span.left+'%;width:'+span.width+'%" title="'+esc(description)+'" aria-label="'+esc(description)+'"><span>'+load+'%</span></div>';
+   }).join('');
+   return '<div class="row report-result-row"><div class="label" title="'+esc(title)+'"><span class="report-person-name">'+esc(r.person.name)+'</span><span class="report-day-count">'+r.count+'/'+report.days+'</span></div><div class="report-result-track">'+grid+segments+'</div></div>';
+  }).join('');
+  calendar.innerHTML=body||(total? '':'<div class="empty">Brak osób spełniających wybrane warunki.</div>');
+
  }catch(e){error.textContent=e.message;calendar.innerHTML='';$('#report-summary').textContent='';$('#report-page').textContent='';$('#report-prev').disabled=$('#report-next').disabled=true}
 }
 const initialReportBounds=bounds(dt(today),'month');
@@ -68,8 +77,8 @@ function renderRangeCalendar(){
 function paintRange(first=$('#report-start').value,last=$('#report-end').value){
  const [start,end]=rangeBounds(),days=(dt(end)-dt(start))/DAY+1,bar=$('#range-bar');
  bar.hidden=!first||!last||last<first||last<start||first>end;
- const left=Math.max(0,(dt(first)-dt(start))/DAY),right=Math.min(days,(dt(last)-dt(start))/DAY+1);
- bar.style.left=(left/days*100)+'%';bar.style.width=((right-left)/days*100)+'%';
+ const span=reportSpan(first,last,start,end);
+ bar.style.left=span.left+'%';bar.style.width=span.width+'%';
  bar.querySelector('.bar-text').textContent=first+' – '+last;bar.title=first+' – '+last;
  bar.querySelector('[data-range-resize="start"]').hidden=first<start;
  bar.querySelector('[data-range-resize="end"]').hidden=last>end;
@@ -91,7 +100,7 @@ for(const [id,step] of [['#range-prev',-1],['#range-next',1]])$(id).onclick=()=>
 };
 $('#range-today').onclick=()=>{rangeCursor=dt(today);selectVisibleReportRange()};
 $('#range-scale').onchange=()=>{if(monthCount($('#range-scale').value)>=6)$('#range-unit').value='weeks';selectVisibleReportRange()};
-$('#range-unit').onchange=renderRangeCalendar;
+$('#range-unit').onchange=()=>{renderRangeCalendar();renderReports()};
 rangeChart.addEventListener('pointerdown',e=>{
  if(e.button!==0||!e.target.closest('#range-track'))return;
  e.preventDefault();const column=rangeColumnAt(e.clientX),bar=e.target.closest('#range-bar');
