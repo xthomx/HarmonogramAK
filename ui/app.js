@@ -255,7 +255,8 @@ const zoomScales=['week','month','twoMonths','threeMonths','sixMonths','year'];
 function zoomScale(current,direction){return zoomScales[Math.max(0,Math.min(zoomScales.length-1,zoomScales.indexOf(current)+direction))]}
 let lastWheelZoom=0,wheelSum=0;
 $('#chart').addEventListener('wheel',e=>{
- if(e.ctrlKey||e.shiftKey||dragState||drawState||$('#modal').open||$('#split-dialog').open||!e.target.closest('.track,.days,.month-segments'))return;
+ if(!e.ctrlKey){wheelSum=0;return}
+ if(e.shiftKey||dragState||drawState||$('#modal').open||$('#split-dialog').open||!e.target.closest('.track,.days,.month-segments'))return;
  if(Math.abs(e.deltaX)>Math.abs(e.deltaY)||!e.deltaY)return;
  e.preventDefault();
  const now=Date.now();if(now-lastWheelZoom<200)return;
