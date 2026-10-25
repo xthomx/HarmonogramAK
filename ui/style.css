@@ -159,3 +159,6 @@ body.schedule-view footer{margin-top:5px;font-size:9px}
 .row.person-overloaded .overload-badge{display:inline-block;color:#a32e25;background:#fbd9d1;border-radius:4px;padding:0 4px;font-weight:750;line-height:16px}
 .row.person-overloaded .track{background-color:#fff7f4}
 .row.person-overloaded .cell{box-shadow:inset 0 0 0 999px #c4453609}
+
+.header-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;min-width:0}
+.header-actions button{white-space:normal}
