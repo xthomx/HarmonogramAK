@@ -14,7 +14,8 @@ function renderReports(){
   calendar.innerHTML=total?'<table class="report-table"><caption class="sr-only">Dzienny kalendarz obciążenia osób w wybranym okresie</caption>'+head+'<tbody>'+body+'</tbody></table>':'<div class="empty">Brak osób spełniających wybrane warunki.</div>';
  }catch(e){error.textContent=e.message;calendar.innerHTML='';$('#report-summary').textContent='';$('#report-page').textContent='';$('#report-prev').disabled=$('#report-next').disabled=true}
 }
-$('#report-start').value=today;$('#report-end').value=plus(today,30);
+const initialReportBounds=bounds(dt(today),'month');
+$('#report-start').value=initialReportBounds[0];$('#report-end').value=initialReportBounds[1];
 $('#report-form').onsubmit=e=>{e.preventDefault();reportPage=0;renderReports()};
 for(const id of ['#report-start','#report-end','#report-mode','#report-match'])$(id).onchange=()=>{renderRangeCalendar();reportPage=0;renderReports()};
 $('#report-prev').onclick=()=>{reportPage--;renderReports()};
@@ -75,16 +76,21 @@ function paintRange(first=$('#report-start').value,last=$('#report-end').value){
  $('#range-selection').textContent='Wybrany zakres: '+first+' – '+last;
 }
 function rangeColumnAt(x){const rect=$('#range-track').getBoundingClientRect(),[start,end]=rangeBounds(),days=(dt(end)-dt(start))/DAY+1,day=plus(start,Math.max(0,Math.min(days-1,Math.floor((x-rect.left)/rect.width*days))));return rangeColumns().find(c=>day>=c.start&&day<=c.end)}
+function selectVisibleReportRange(){
+ rangeDrag=null;const [first,last]=rangeBounds();
+ $('#report-start').value=first;$('#report-end').value=last;
+ reportPage=0;renderRangeCalendar();renderReports();
+}
 function commitRange(first,last){
  if(!first||!last||last<first||(dt(last)-dt(first))/DAY>=366){$('#report-error').textContent='Wybierz poprawny okres nie dłuższy niż 366 dni.';paintRange();return}
  $('#report-start').value=first;$('#report-end').value=last;paintRange();reportPage=0;renderReports();
 }
 for(const [id,step] of [['#range-prev',-1],['#range-next',1]])$(id).onclick=()=>{
  rangeDrag=null;const scale=$('#range-scale').value;
- rangeCursor=scale==='week'?new Date(+rangeCursor+step*7*DAY):new Date(Date.UTC(rangeCursor.getUTCFullYear(),rangeCursor.getUTCMonth()+step*monthCount(scale),1));renderRangeCalendar();
+ rangeCursor=scale==='week'?new Date(+rangeCursor+step*7*DAY):new Date(Date.UTC(rangeCursor.getUTCFullYear(),rangeCursor.getUTCMonth()+step*monthCount(scale),1));selectVisibleReportRange();
 };
-$('#range-today').onclick=()=>{rangeCursor=dt(today);renderRangeCalendar()};
-$('#range-scale').onchange=()=>{if(monthCount($('#range-scale').value)>=6)$('#range-unit').value='weeks';renderRangeCalendar()};
+$('#range-today').onclick=()=>{rangeCursor=dt(today);selectVisibleReportRange()};
+$('#range-scale').onchange=()=>{if(monthCount($('#range-scale').value)>=6)$('#range-unit').value='weeks';selectVisibleReportRange()};
 $('#range-unit').onchange=renderRangeCalendar;
 rangeChart.addEventListener('pointerdown',e=>{
  if(e.button!==0||!e.target.closest('#range-track'))return;
@@ -98,11 +104,17 @@ function updateRangeDrag(x){
  else if(d.mode==='start')first=c.start>last?last:c.start;
  else if(d.mode==='end')last=c.end<first?first:c.end;
  else{const offset=(dt(c.start)-dt(d.column.start))/DAY;first=plus(d.start,offset);last=plus(d.end,offset)}
- d.first=first;d.last=last;paintRange(first,last);
+ d.first=first;d.last=last;
+ if((dt(last)-dt(first))/DAY<366){$('#report-start').value=first;$('#report-end').value=last;reportPage=0;renderReports()}
+ paintRange(first,last);
 }
-rangeChart.addEventListener('pointermove',e=>{if(rangeDrag?.id===e.pointerId)updateRangeDrag(e.clientX)});
-rangeChart.addEventListener('pointerup',e=>{if(rangeDrag?.id!==e.pointerId)return;updateRangeDrag(e.clientX);const d=rangeDrag;rangeDrag=null;rangeChart.releasePointerCapture(e.pointerId);commitRange(d.first,d.last)});
-function cancelRangeDrag(){rangeDrag=null;paintRange()}
+let rangeFrame=null,rangePendingX=0;
+rangeChart.addEventListener('pointermove',e=>{
+ if(rangeDrag?.id!==e.pointerId)return;rangePendingX=e.clientX;
+ if(rangeFrame===null)rangeFrame=requestAnimationFrame(()=>{rangeFrame=null;if(rangeDrag)updateRangeDrag(rangePendingX)});
+});
+rangeChart.addEventListener('pointerup',e=>{if(rangeDrag?.id!==e.pointerId)return;if(rangeFrame!==null){cancelAnimationFrame(rangeFrame);rangeFrame=null}updateRangeDrag(e.clientX);const d=rangeDrag;rangeDrag=null;rangeChart.releasePointerCapture(e.pointerId);commitRange(d.first,d.last)});
+function cancelRangeDrag(){if(rangeFrame!==null){cancelAnimationFrame(rangeFrame);rangeFrame=null}const previous=rangeDrag;rangeDrag=null;if(previous){$('#report-start').value=previous.start;$('#report-end').value=previous.end;renderReports()}paintRange()}
 rangeChart.addEventListener('pointercancel',cancelRangeDrag);
 rangeChart.addEventListener('lostpointercapture',()=>{if(rangeDrag)cancelRangeDrag()});
 window.addEventListener('keydown',e=>{if(e.key==='Escape'&&rangeDrag)cancelRangeDrag()});
@@ -112,6 +124,6 @@ rangeChart.addEventListener('wheel',e=>{
  e.preventDefault();const now=Date.now();if(now-rangeZoomAt<200)return;
  rangeWheelSum+=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?200:1);if(Math.abs(rangeWheelSum)<40)return;
  const current=$('#range-scale').value,next=zoomScale(current,rangeWheelSum>0?1:-1);rangeWheelSum=0;if(current===next)return;
- rangeCursor=dt(rangeColumnAt(e.clientX).start);$('#range-scale').value=next;$('#range-unit').value=monthCount(next)>=6?'weeks':'days';rangeZoomAt=now;renderRangeCalendar();
+ rangeCursor=dt(rangeColumnAt(e.clientX).start);$('#range-scale').value=next;$('#range-unit').value=monthCount(next)>=6?'weeks':'days';rangeZoomAt=now;selectVisibleReportRange();
 },{passive:false});
 renderRangeCalendar();
