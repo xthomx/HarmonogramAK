@@ -132,3 +132,13 @@ body.schedule-view footer{margin-top:5px;font-size:9px}
 
 /* Stage overlay preserves the project's background color and conflict outline. */
 .bar.commissioning{background-image:repeating-linear-gradient(135deg,transparent 0,transparent 5px,rgba(0,0,0,.13) 5px,rgba(0,0,0,.13) 7px)}
+
+/* Keep native Windows date controls separate from the split label and help. */
+#split-panel{min-inline-size:0;max-width:100%;margin:18px 0 0;padding:16px;border:1px solid #dce3e9;border-radius:8px}
+#split-panel legend{padding:0 6px;font-size:13px;font-weight:600;line-height:1.5}
+#split-panel .split-date-field{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin-top:6px}
+#split-panel label{display:block;line-height:1.5;white-space:normal}
+#split-date{display:block;width:100%;max-width:100%;min-width:0;min-height:44px;padding:10px 12px;font-size:14px;line-height:1.5}
+#split-help{margin:12px 0;line-height:1.6;font-size:12px;color:#667285;overflow-wrap:anywhere}
+#split-panel .split-actions{display:flex;flex-wrap:wrap;gap:8px}
+#split-panel .split-actions button{max-width:100%;white-space:normal}
