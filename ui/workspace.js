@@ -16,7 +16,7 @@ function renderReports(){
 }
 $('#report-start').value=today;$('#report-end').value=plus(today,30);
 $('#report-form').onsubmit=e=>{e.preventDefault();reportPage=0;renderReports()};
-for(const id of ['#report-start','#report-end','#report-mode','#report-match'])$(id).onchange=()=>{rangeAnchor=null;paintRange();reportPage=0;renderReports()};
+for(const id of ['#report-start','#report-end','#report-mode','#report-match'])$(id).onchange=()=>{renderRangeCalendar();reportPage=0;renderReports()};
 $('#report-prev').onclick=()=>{reportPage--;renderReports()};
 $('#report-next').onclick=()=>{reportPage++;renderReports()};
 function applyTheme(theme){const next=theme==='dark'?'dark':'light';document.documentElement.dataset.theme=next;$('#theme').value=next}
@@ -49,55 +49,69 @@ async function restoreWorkspace(){
 window.addEventListener('pywebviewready',restoreWorkspace);
 if(window.pywebview?.api)restoreWorkspace();
 
-// Range selection remains independent of filtered report rows (including empty results).
-let rangeMonth=today.slice(0,7)+'-01',rangeAnchor=null,rangeDrag=null;
-function rangeBounds(a,b){return a<=b?[a,b]:[b,a]}
-function paintRange(preview){
- const [first,last]=preview||[$('#report-start').value,$('#report-end').value];
- document.querySelectorAll('[data-range-date]').forEach(button=>{
-  const day=button.dataset.rangeDate,selected=day>=first&&day<=last;
-  button.classList.toggle('range-selected',selected);button.classList.toggle('range-edge',day===first||day===last);
-  button.setAttribute('aria-pressed',String(selected));
- });
- $('#range-selection').textContent=rangeAnchor?'Początek: '+rangeAnchor+' — wybierz koniec':first+' – '+last;
-}
+// Report timeline uses the schedule's date bounds, week columns and CSS.
+let rangeCursor=dt(today),rangeDrag=null,rangeWheelSum=0,rangeZoomAt=0;
+const rangeChart=$('#range-chart');
+function rangeBounds(){return bounds(rangeCursor,$('#range-scale').value)}
+function rangeColumns(){const [start,end]=rangeBounds(),days=Array.from({length:(dt(end)-dt(start))/DAY+1},(_,i)=>plus(start,i));return $('#range-unit').value==='weeks'?weekColumns(days):days.map(day=>({start:day,end:day,count:1}))}
 function renderRangeCalendar(){
- const base=dt(rangeMonth),months=[0,1].map(offset=>new Date(Date.UTC(base.getUTCFullYear(),base.getUTCMonth()+offset,1)));
- $('#range-months').textContent=months.map(d=>d.toLocaleDateString('pl-PL',{month:'long',year:'numeric',timeZone:'UTC'})).join(' / ');
- $('#range-calendar').innerHTML=months.map(month=>{
-  const first=month.toISOString().slice(0,10),skip=(month.getUTCDay()+6)%7,last=new Date(Date.UTC(month.getUTCFullYear(),month.getUTCMonth()+1,0)).getUTCDate();
-  return '<div class="range-month"><strong>'+month.toLocaleDateString('pl-PL',{month:'long',year:'numeric',timeZone:'UTC'})+'</strong><div class="range-days">'+['Pn','Wt','Śr','Cz','Pt','So','Nd'].map(x=>'<span>'+x+'</span>').join('')+'<span class="range-spacer" style="grid-column:span '+(skip||1)+'" '+(!skip?'hidden':'')+'></span>'+Array.from({length:last},(_,i)=>{const date=plus(first,i);return '<button type="button" data-range-date="'+date+'" aria-label="'+date+'">'+(i+1)+'</button>'}).join('')+'</div></div>';
- }).join('');paintRange();
+ const [start,end]=rangeBounds(),days=(dt(end)-dt(start))/DAY+1,columns=rangeColumns(),weekly=$('#range-unit').value==='weeks',months=[];
+ const monthTitle=d=>dt(d).toLocaleDateString('pl-PL',{month:'long',year:'numeric',timeZone:'UTC'});
+ $('#range-period').textContent=$('#range-scale').value==='week'?start+' – '+end:monthTitle(start)+(start.slice(0,7)!==end.slice(0,7)?' – '+monthTitle(end):'');
+ for(let i=0;i<days;i++){const day=plus(start,i);if(months.at(-1)?.key===day.slice(0,7))months.at(-1).count++;else months.push({key:day.slice(0,7),day,count:1})}
+ rangeChart.classList.toggle('weekly-view',weekly);rangeChart.classList.toggle('long-view',weekly&&monthCount($('#range-scale').value)>=6);
+ const weekend=d=>[0,6].includes(dt(d).getUTCDay());
+ rangeChart.innerHTML=(months.length>1?'<div class="row month-head"><div class="label">MIESIĄCE</div><div class="month-segments">'+months.map(m=>'<div style="flex:'+m.count+'">'+esc(monthTitle(m.day))+'</div>').join('')+'</div></div>':'')+'<div class="row head"><div class="label">OKRES RAPORTU</div><div class="days">'+columns.map(c=>weekly?'<div class="week-column" style="flex:'+c.count+'" title="Tydzień '+c.number+': '+c.start+' – '+c.end+'"><strong>'+c.number+'</strong></div>':'<div class="day '+(weekend(c.start)?'weekend ':'')+(c.start===today?'today':'')+'">'+['N','P','W','Ś','C','P','S'][dt(c.start).getUTCDay()]+'<b>'+Number(c.start.slice(8))+'</b></div>').join('')+'</div></div><div class="row"><div class="label">Zaznaczony zakres</div><div class="track" id="range-track"><div class="grid-bg">'+columns.map(c=>'<div class="cell '+(weekly?'week-cell':weekend(c.start)?'weekend':'')+'" style="flex:'+c.count+'"></div>').join('')+'</div><button type="button" id="range-bar" class="bar" aria-label="Wybrany okres raportu"><span class="resize-handle start" data-range-resize="start"></span><span class="bar-text"></span><span class="resize-handle end" data-range-resize="end"></span></button></div></div>';
+ paintRange();
 }
-function commitRange(a,b){
- const [first,last]=rangeBounds(a,b);
- if((dt(last)-dt(first))/86400000>=366){$('#report-error').textContent='Wybierz okres nie dłuższy niż 366 dni.';rangeAnchor=null;paintRange();return}
- $('#report-start').value=first;$('#report-end').value=last;rangeAnchor=null;paintRange();reportPage=0;renderReports();
+function paintRange(first=$('#report-start').value,last=$('#report-end').value){
+ const [start,end]=rangeBounds(),days=(dt(end)-dt(start))/DAY+1,bar=$('#range-bar');
+ bar.hidden=!first||!last||last<first||last<start||first>end;
+ const left=Math.max(0,(dt(first)-dt(start))/DAY),right=Math.min(days,(dt(last)-dt(start))/DAY+1);
+ bar.style.left=(left/days*100)+'%';bar.style.width=((right-left)/days*100)+'%';
+ bar.querySelector('.bar-text').textContent=first+' – '+last;bar.title=first+' – '+last;
+ bar.querySelector('[data-range-resize="start"]').hidden=first<start;
+ bar.querySelector('[data-range-resize="end"]').hidden=last>end;
+ $('#range-selection').textContent='Wybrany zakres: '+first+' – '+last;
+}
+function rangeColumnAt(x){const rect=$('#range-track').getBoundingClientRect(),[start,end]=rangeBounds(),days=(dt(end)-dt(start))/DAY+1,day=plus(start,Math.max(0,Math.min(days-1,Math.floor((x-rect.left)/rect.width*days))));return rangeColumns().find(c=>day>=c.start&&day<=c.end)}
+function commitRange(first,last){
+ if(!first||!last||last<first||(dt(last)-dt(first))/DAY>=366){$('#report-error').textContent='Wybierz poprawny okres nie dłuższy niż 366 dni.';paintRange();return}
+ $('#report-start').value=first;$('#report-end').value=last;paintRange();reportPage=0;renderReports();
 }
 for(const [id,step] of [['#range-prev',-1],['#range-next',1]])$(id).onclick=()=>{
- const date=dt(rangeMonth);rangeMonth=new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth()+step,1)).toISOString().slice(0,10);renderRangeCalendar();
+ rangeDrag=null;const scale=$('#range-scale').value;
+ rangeCursor=scale==='week'?new Date(+rangeCursor+step*7*DAY):new Date(Date.UTC(rangeCursor.getUTCFullYear(),rangeCursor.getUTCMonth()+step*monthCount(scale),1));renderRangeCalendar();
 };
-const rangeCalendar=$('#range-calendar');
-rangeCalendar.addEventListener('pointerdown',e=>{
- const button=e.target.closest('[data-range-date]');if(!button||e.button!==0)return;
- rangeDrag={start:button.dataset.rangeDate,end:button.dataset.rangeDate,id:e.pointerId};
+$('#range-today').onclick=()=>{rangeCursor=dt(today);renderRangeCalendar()};
+$('#range-scale').onchange=()=>{if(monthCount($('#range-scale').value)>=6)$('#range-unit').value='weeks';renderRangeCalendar()};
+$('#range-unit').onchange=renderRangeCalendar;
+rangeChart.addEventListener('pointerdown',e=>{
+ if(e.button!==0||!e.target.closest('#range-track'))return;
+ e.preventDefault();const column=rangeColumnAt(e.clientX),bar=e.target.closest('#range-bar');
+ rangeDrag={id:e.pointerId,column,mode:e.target.dataset.rangeResize||(bar?'move':'new'),start:$('#report-start').value,end:$('#report-end').value};
+ rangeChart.setPointerCapture(e.pointerId);updateRangeDrag(e.clientX);
 });
-window.addEventListener('pointermove',e=>{
- if(!rangeDrag||e.pointerId!==rangeDrag.id)return;
- const button=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-range-date]');
- if(button){rangeDrag.end=button.dataset.rangeDate;paintRange(rangeBounds(rangeDrag.start,rangeDrag.end))}
-});
-let suppressRangeClick=false;
-window.addEventListener('pointerup',e=>{
- if(!rangeDrag||e.pointerId!==rangeDrag.id)return;
- const drag=rangeDrag;rangeDrag=null;
- if(drag.start!==drag.end){suppressRangeClick=true;commitRange(drag.start,drag.end);setTimeout(()=>{suppressRangeClick=false},0)}else paintRange();
-});
-window.addEventListener('pointercancel',()=>{rangeDrag=null;paintRange()});
-window.addEventListener('blur',()=>{rangeDrag=null;paintRange()});
-rangeCalendar.addEventListener('click',e=>{
- const button=e.target.closest('[data-range-date]');if(!button||suppressRangeClick)return;
- const date=button.dataset.rangeDate;
- if(rangeAnchor)commitRange(rangeAnchor,date);else{rangeAnchor=date;paintRange([date,date])}
-});
+function updateRangeDrag(x){
+ const d=rangeDrag,c=rangeColumnAt(x);let first=d.start,last=d.end;
+ if(d.mode==='new'){first=c.start<d.column.start?c.start:d.column.start;last=c.end>d.column.end?c.end:d.column.end}
+ else if(d.mode==='start')first=c.start>last?last:c.start;
+ else if(d.mode==='end')last=c.end<first?first:c.end;
+ else{const offset=(dt(c.start)-dt(d.column.start))/DAY;first=plus(d.start,offset);last=plus(d.end,offset)}
+ d.first=first;d.last=last;paintRange(first,last);
+}
+rangeChart.addEventListener('pointermove',e=>{if(rangeDrag?.id===e.pointerId)updateRangeDrag(e.clientX)});
+rangeChart.addEventListener('pointerup',e=>{if(rangeDrag?.id!==e.pointerId)return;updateRangeDrag(e.clientX);const d=rangeDrag;rangeDrag=null;rangeChart.releasePointerCapture(e.pointerId);commitRange(d.first,d.last)});
+function cancelRangeDrag(){rangeDrag=null;paintRange()}
+rangeChart.addEventListener('pointercancel',cancelRangeDrag);
+rangeChart.addEventListener('lostpointercapture',()=>{if(rangeDrag)cancelRangeDrag()});
+window.addEventListener('keydown',e=>{if(e.key==='Escape'&&rangeDrag)cancelRangeDrag()});
+rangeChart.addEventListener('wheel',e=>{
+ if(!e.ctrlKey){rangeWheelSum=0;return}
+ if(e.shiftKey||rangeDrag||!e.deltaY||Math.abs(e.deltaX)>Math.abs(e.deltaY))return;
+ e.preventDefault();const now=Date.now();if(now-rangeZoomAt<200)return;
+ rangeWheelSum+=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?200:1);if(Math.abs(rangeWheelSum)<40)return;
+ const current=$('#range-scale').value,next=zoomScale(current,rangeWheelSum>0?1:-1);rangeWheelSum=0;if(current===next)return;
+ rangeCursor=dt(rangeColumnAt(e.clientX).start);$('#range-scale').value=next;$('#range-unit').value=monthCount(next)>=6?'weeks':'days';rangeZoomAt=now;renderRangeCalendar();
+},{passive:false});
 renderRangeCalendar();
