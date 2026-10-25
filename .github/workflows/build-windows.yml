@@ -68,6 +68,9 @@ jobs:
       - name: Run tests
         working-directory: ${{ steps.project.outputs.dir }}
         run: python -m unittest discover -s tests -v
+      - name: Test availability report logic
+        working-directory: ${{ steps.project.outputs.dir }}
+        run: node --test tests/test_reports.cjs
       - name: Build Windows application
         working-directory: ${{ steps.project.outputs.dir }}
         run: python -m PyInstaller --noconfirm --clean --onedir --windowed --name PlanZespolu --add-data "ui;ui" --collect-all webview main.py
@@ -116,3 +119,4 @@ jobs:
           else
             gh release create "$RELEASE_TAG" release/* --target "$RELEASE_COMMIT" --title "HarmonogramAK $RELEASE_TAG" --generate-notes
           fi
+

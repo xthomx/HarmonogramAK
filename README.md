@@ -36,3 +36,8 @@ Przed wydaniem zwiększ `APP_VERSION` w `app_version.py`, np. do `1.0.1`,
 i wyślij tag `v1.0.1`. Budowa sprawdza zgodność taga z wersją. Sam artefakt
 z Actions nie jest wydaniem: bez opublikowanego Release program wyświetla
 informację, że nie ma jeszcze stabilnych wydań.
+
+## Wersja 1.2.0: plik, motyw i raporty
+Nazwa bieżącego pliku jest widoczna pod tytułem ekranu (pełna ścieżka po najechaniu). Program przy starcie otwiera ostatni zaakceptowany lub poprawnie zapisany plik. Jeśli plik jest niedostępny, pokazuje komunikat; można otworzyć inny plan. Nie zapisuje automatycznie zmian planu. Ścieżka i motyw Jasny/Ciemny są przechowywane lokalnie w ustawieniach użytkownika poza folderem programu.
+
+Zakładka Raporty pokazuje dzienne obciążenie osób w wybranym zakresie do 366 dni. Można wyszukać osoby bez przypisań, z obciążeniem poniżej 100% lub 1–99%, co najmniej jednego dnia albo przez cały okres. Obliczenia uwzględniają wszystkie projekty, oba końce przedziału i weekendy. Wyniki są stronicowane po 30 osób; kalendarz można przewijać poziomo. Filtry harmonogramu nie ograniczają raportu.

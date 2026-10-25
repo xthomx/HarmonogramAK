@@ -8,6 +8,7 @@ import threading
 import uuid
 from plan_format import dumps, loads
 import xlsx_format
+from preferences import Preferences
 from app_version import APP_VERSION
 from updates import check_updates, RELEASES_URL
 
@@ -49,11 +50,51 @@ def atomic_write(path, text):
 
 
 class Api:
-    def __init__(self):
+    def __init__(self, preferences_path=None):
         self._window = None
         self._path = None
         self._pending = None
         self._lock = threading.Lock()
+        self._preferences = Preferences(preferences_path)
+
+    def get_preferences(self):
+        return self._preferences.get()
+
+    def set_theme(self, theme):
+        self._preferences.update(theme=theme)
+        return True
+
+    def _remember_path(self, path):
+        try:
+            self._preferences.update(last_file=str(Path(path).resolve()))
+            return ''
+        except OSError:
+            return 'Nie udało się zapamiętać ścieżki pliku na następne uruchomienie.'
+
+    def _prepare_open(self, path):
+        if path.suffix.lower() not in ('.xlsx', '.csv', '.txt', '.json'):
+            raise ValueError('Nieobsługiwany format pliku.')
+        with path.open('rb') as f:
+            raw = f.read(MAX_BYTES + 1)
+        if len(raw) > MAX_BYTES:
+            raise ValueError('Plik przekracza 5 MB.')
+        data = xlsx_format.loads(raw) if path.suffix.lower() == '.xlsx' else loads(raw.decode('utf-8-sig'), path.suffix.lower())
+        text = json.dumps(data, ensure_ascii=False)
+        parse_plan(text)
+        token = uuid.uuid4().hex
+        self._pending = (token, path)
+        return {'token': token, 'name': path.name, 'path': str(path.resolve()), 'text': text,
+                'format': path.suffix.lower()[1:] if path.suffix.lower() in ('.xlsx', '.csv', '.txt') else 'xlsx'}
+
+    def restore_last_plan(self):
+        with self._lock:
+            path = self._preferences.get()['last_file']
+            if not path:
+                return None
+            try:
+                return self._prepare_open(Path(path))
+            except (OSError, ValueError, UnicodeError, KeyError) as exc:
+                return {'error': 'Nie można otworzyć ostatniego pliku: ' + str(exc)}
 
     def get_version(self):
         return APP_VERSION
@@ -83,16 +124,7 @@ class Api:
             if not paths:
                 return None
             path = Path(paths[0] if isinstance(paths, (list, tuple)) else paths)
-            with path.open('rb') as f:
-                raw = f.read(MAX_BYTES + 1)
-            if len(raw) > MAX_BYTES:
-                raise ValueError('Plik przekracza 5 MB.')
-            data = xlsx_format.loads(raw) if path.suffix.lower() == '.xlsx' else loads(raw.decode('utf-8-sig'), path.suffix.lower())
-            text = json.dumps(data, ensure_ascii=False)
-            parse_plan(text)
-            token = uuid.uuid4().hex
-            self._pending = (token, path)
-            return {'token': token, 'name': path.name, 'text': text, 'format': path.suffix.lower()[1:] if path.suffix.lower() in ('.xlsx', '.csv', '.txt') else 'xlsx'}
+            return self._prepare_open(path)
 
     def accept_open(self, token):
         with self._lock:
@@ -100,6 +132,7 @@ class Api:
                 raise ValueError('Nieaktualna operacja otwierania.')
             self._path = self._pending[1]
             self._pending = None
+            self._remember_path(self._path)
             return True
 
     def save_plan(self, text, as_new=False, file_format="xlsx"):
@@ -125,7 +158,8 @@ class Api:
                     return None
             atomic_write(path, text)
             self._path = path
-            return {'name': path.name}
+            warning = self._remember_path(path)
+            return {'name': path.name, 'path': str(path.resolve()), 'warning': warning}
 
 
 def main():
@@ -133,7 +167,9 @@ def main():
     root = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent)) / 'ui'
     html = (root / 'index.html').read_text(encoding='utf-8')
     html = html.replace('<link rel="stylesheet" href="style.css">', '<style>' + (root / 'style.css').read_text(encoding='utf-8') + '</style>')
-    html = html.replace('<script src="app.js"></script>', '<script>' + (root / 'app.js').read_text(encoding='utf-8') + '</script>')
+    for script in ('report_model.js', 'app.js', 'workspace.js'):
+        html = html.replace('<script src="' + script + '"></script>', '<script>' + (root / script).read_text(encoding='utf-8') + '</script>')
+
     api = Api()
     window = webview.create_window('Plan zespołu', html=html, js_api=api,
         width=1400, height=900, min_size=(900, 600), maximized=True, text_select=True,
@@ -163,3 +199,4 @@ if __name__ == '__main__':
                 'Nie udało się uruchomić programu. Sprawdź instalację Microsoft Edge WebView2 Runtime.\nSzczegóły: ' + str(log / 'blad.log'),
                 'Plan zespołu', 16)
         raise
+
