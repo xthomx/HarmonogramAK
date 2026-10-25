@@ -72,7 +72,7 @@ function splitAssignment(source,secondStart,idFactory){
  return [{...source,end:plus(secondStart,-1)},{...source,id:idFactory(),start:secondStart}];
 }
 
-function open(k,id,preset={}){kind=k;edit=id||null;let x=data[k].find(x=>x.id===id)||preset;if(k==='assignments'&&(!data.people.length||!data.projects.length)){toast('Najpierw dodaj co najmniej jedną osobę i projekt.');return}$('#modal-title').textContent=(id?'Edytuj ':'Dodaj ')+{assignments:'przypisanie',people:'osobę',projects:'projekt'}[k];$('#delete').hidden=!id;$('#copy-assignment').hidden=!(k==='assignments'&&id);$('#split-assignment').hidden=!(k==='assignments'&&id);$('#split-panel').hidden=true;if(preset.copyFrom)$('#modal-title').textContent='Kopiuj przypisanie dla innych osób';$('#form-error').textContent='';if(k==='assignments'){$('#fields').innerHTML=`${id?`<label>Osoba<select name="person">${data.people.map(p=>`<option value="${esc(p.id)}" ${x.person===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label>`:assignmentPeople(x)}<label>Projekt — Skrót · Nr tematu · Nazwa projektu<select name="project">${data.projects.map(p=>`<option value="${esc(p.id)}" ${x.project===p.id?'selected':''}>${esc(projectIdentity(p))}</option>`).join('')}</select></label><div class="dates">${field('Od','start',x.start||today,'date','required')}${field('Do (włącznie)','end',x.end||plus(today,6),'date','required')}</div>${field('Zaangażowanie (%)','load',x.load||100,'number','required min="1" max="100" step="1"')}<label>Etap zadania<select name="stage"><option value="Offline" ${assignmentStage(x)==='Offline'?'selected':''}>Offline</option><option value="Uruchomienie" ${assignmentStage(x)==='Uruchomienie'?'selected':''}>Uruchomienie</option></select></label>${field('Notatka','note',x.note||'','text','maxlength="250"')}<small>Równoległe przypisania są dozwolone. Suma ponad 100% zostanie oznaczona w kalendarzu.</small>`}else $('#fields').innerHTML=(k==='people'?field('Imię i nazwisko','name',x.name||'','text','required maxlength="80"')+field('Specjalizacja / dział','role',x.role||'','text','maxlength="80"')+field('Grupa','group',x.group||'','text','maxlength="80" placeholder="Wpisz nazwę grupy"')+'<small>Wpisz dowolną nazwę grupy. Puste pole oznacza brak grupy.</small>':field('Nr tematu','topicNumber',x.topicNumber||'','text','maxlength="80"')+field('Skrót','shortName',x.shortName||'','text','maxlength="40"')+field('Nazwa projektu','name',x.name||'','text','required maxlength="80"')+`<label>Opis projektu<textarea name="description" rows="4" maxlength="2000">${esc(x.description||'')}</textarea></label>`+field('Kolor projektu','color',x.color||'#347c68','color'));$('#modal').showModal()}
+function open(k,id,preset={}){kind=k;edit=id||null;let x=data[k].find(x=>x.id===id)||preset;if(k==='assignments'&&(!data.people.length||!data.projects.length)){toast('Najpierw dodaj co najmniej jedną osobę i projekt.');return}$('#modal-title').textContent=(id?'Edytuj ':'Dodaj ')+{assignments:'przypisanie',people:'osobę',projects:'projekt'}[k];$('#delete').hidden=!id;$('#copy-assignment').hidden=!(k==='assignments'&&id);$('#split-assignment').hidden=!(k==='assignments'&&id);$('#generate-colors').hidden=k!=='projects';if(preset.copyFrom)$('#modal-title').textContent='Kopiuj przypisanie dla innych osób';$('#form-error').textContent='';if(k==='assignments'){$('#fields').innerHTML=`${id?`<label>Osoba<select name="person">${data.people.map(p=>`<option value="${esc(p.id)}" ${x.person===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label>`:assignmentPeople(x)}<label>Projekt — Skrót · Nr tematu · Nazwa projektu<select name="project">${data.projects.map(p=>`<option value="${esc(p.id)}" ${x.project===p.id?'selected':''}>${esc(projectIdentity(p))}</option>`).join('')}</select></label><div class="dates">${field('Od','start',x.start||today,'date','required')}${field('Do (włącznie)','end',x.end||plus(today,6),'date','required')}</div>${field('Zaangażowanie (%)','load',x.load||100,'number','required min="1" max="100" step="1"')}<label>Etap zadania<select name="stage"><option value="Offline" ${assignmentStage(x)==='Offline'?'selected':''}>Offline</option><option value="Uruchomienie" ${assignmentStage(x)==='Uruchomienie'?'selected':''}>Uruchomienie</option></select></label>${field('Notatka','note',x.note||'','text','maxlength="250"')}<small>Równoległe przypisania są dozwolone. Suma ponad 100% zostanie oznaczona w kalendarzu.</small>`}else $('#fields').innerHTML=(k==='people'?field('Imię i nazwisko','name',x.name||'','text','required maxlength="80"')+field('Specjalizacja / dział','role',x.role||'','text','maxlength="80"')+field('Grupa','group',x.group||'','text','maxlength="80" placeholder="Wpisz nazwę grupy"')+'<small>Wpisz dowolną nazwę grupy. Puste pole oznacza brak grupy.</small>':field('Nr tematu','topicNumber',x.topicNumber||'','text','maxlength="80"')+field('Skrót','shortName',x.shortName||'','text','maxlength="40"')+field('Nazwa projektu','name',x.name||'','text','required maxlength="80"')+`<label>Opis projektu<textarea name="description" rows="4" maxlength="2000">${esc(x.description||'')}</textarea></label>`+field('Kolor projektu','color',x.color||'#347c68','color'));$('#modal').showModal()}
 $('#form').onsubmit=e=>{e.preventDefault();const formValues=new FormData(e.target);let x=Object.fromEntries(formValues);if(kind==='assignments'&&!edit){
  try{
   const items=makeAssignments(x,formValues.getAll('people'),data.people,uid);
@@ -117,7 +117,7 @@ async function savePlan(asNew=false){if(fileBusy)return;fileBusy=true;fileNotice
 $('#import').onclick=openPlan;$('#export').onclick=()=>savePlan();$('#save-as').onclick=()=>savePlan(true);
 $('#file').onchange=async e=>{const file=e.target.files[0];if(!file)return;fileBusy=true;updateFileStatus();try{await readPlanFile(file)}catch{fileNotice='Nieprawidłowy plik — bieżący plan pozostał bez zmian.';toast(fileNotice)}finally{e.target.value='';fileBusy=false;updateFileStatus()}};
 // Native host checks dirty state before closing the window.
-document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();if(!$('#modal').open)savePlan(e.shiftKey);else toast('Najpierw zastosuj zmiany w formularzu.')}});
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();if(!$('#modal').open&&!$('#split-dialog').open)savePlan(e.shiftKey);else toast('Najpierw zastosuj zmiany w formularzu.')}});
 
 // Update checks are independent of file operations and never change the plan.
 async function showAppVersion(){try{const api=await desktopApi();$('#app-version').textContent='Wersja '+await api.get_version()}catch{}}
@@ -156,30 +156,98 @@ $('#copy-assignment').onclick=()=>{
  open('assignments',null,{...values,people:[],copyFrom:source.person});
 };
 
+let splitSource=null,splitFromEditor=false;
+function showSplit(source,preferredDate=null,fromEditor=false){
+ if(source.start>=source.end){toast('Zadania jednodniowego nie można podzielić.');return}
+ splitSource={...source};splitFromEditor=fromEditor;
+ const input=$('#split-date'),min=plus(source.start,1);
+ input.min=min;input.max=source.end;
+ input.value=preferredDate? (preferredDate<min?min:preferredDate>source.end?source.end:preferredDate):plus(source.start,Math.ceil((dt(source.end)-dt(source.start))/DAY/2));
+ $('#split-error').textContent='';updateSplitPreview();$('#split-dialog').showModal();input.focus();
+}
+function updateSplitPreview(){
+ if(!splitSource)return;
+ try{const parts=splitAssignment(splitSource,$('#split-date').value,()=> 'preview');
+ $('#split-preview').textContent=parts.map((a,i)=>(i+1)+'. część: '+a.start+' – '+a.end).join(' | ');
+ }catch{$('#split-preview').textContent='Wybierz datę wewnątrz zadania.'}
+}
+$('#split-date').oninput=updateSplitPreview;
+$('#cancel-split').onclick=()=>$('#split-dialog').close();
+$('#split-dialog').addEventListener('close',()=>{splitSource=null});
 $('#split-assignment').onclick=()=>{
- if(kind!=='assignments'||!edit)return;
- if(!$('#form').reportValidity())return;
- const values=Object.fromEntries(new FormData($('#form')));
- if(values.end<=values.start){$('#form-error').textContent=values.end===values.start?'Zadania jednodniowego nie można podzielić.':'Sprawdź daty przypisania.';return}
- const input=$('#split-date');
- input.min=plus(values.start,1);input.max=values.end;
- input.value=plus(values.start,Math.ceil((dt(values.end)-dt(values.start))/DAY/2));
- $('#form-error').textContent='';$('#split-panel').hidden=false;input.focus();
-};
-$('#cancel-split').onclick=()=>{$('#split-panel').hidden=true;$('#split-assignment').focus()};
-$('#confirm-split').onclick=()=>{
  if(kind!=='assignments'||!edit||!$('#form').reportValidity())return;
+ const source=data.assignments.find(a=>a.id===edit);if(!source)return;
+ const values=Object.fromEntries(new FormData($('#form')));
+ if(values.end<values.start){$('#form-error').textContent='Sprawdź daty przypisania.';return}
+ showSplit({...source,...values,load:Number(values.load)},null,true);
+};
+$('#split-form').onsubmit=e=>{
+ e.preventDefault();
  try{
-  const index=data.assignments.findIndex(a=>a.id===edit);
+  const index=data.assignments.findIndex(a=>a.id===splitSource?.id);
   if(index<0)throw Error('Przypisanie już nie istnieje.');
   if(data.assignments.length>=10000)throw Error('Plan może zawierać maksymalnie 10000 przypisań.');
-  const values=Object.fromEntries(new FormData($('#form')));
-  const source={...data.assignments[index],...values,load:Number(values.load)};
-  if(!Number.isInteger(source.load)||source.load<1||source.load>100)throw Error('Zaangażowanie musi wynosić od 1 do 100%.');
-  if(!data.people.some(p=>p.id===source.person)||!data.projects.some(p=>p.id===source.project))throw Error('Wybierz istniejącą osobę i projekt.');
-  const parts=splitAssignment(source,$('#split-date').value,uid);
+  const parts=splitAssignment(splitSource,$('#split-date').value,uid);
   data.assignments.splice(index,1,...parts);
-  save();$('#modal').close();
-  toast('Podzielono zadanie — kliknij Zapisz, aby zapisać plik.');
- }catch(error){$('#form-error').textContent=error.message}
+  if(splitFromEditor)$('#modal').close();
+  $('#split-dialog').close();save();toast('Podzielono zadanie — kliknij Zapisz, aby zapisać plik.');
+ }catch(error){$('#split-error').textContent=error.message}
 };
+let menuAssignment=null,menuDate=null,menuBar=null;
+function closeAssignmentMenu(restore=false){$('#assignment-menu').hidden=true;if(restore&&menuBar?.isConnected)menuBar.focus()}
+$('#chart').addEventListener('contextmenu',e=>{
+ const bar=e.target.closest('[data-edit]');if(!bar||dragState||drawState)return;
+ e.preventDefault();
+ const source=data.assignments.find(a=>a.id===bar.dataset.edit);if(!source)return;
+ menuAssignment=source.id;menuBar=bar;
+ const [start,end]=bounds(),rect=bar.parentElement.getBoundingClientRect(),days=(dt(end)-dt(start))/DAY+1;
+ menuDate=plus(start,Math.max(0,Math.min(days-1,Math.floor((e.clientX-rect.left)/rect.width*days))));
+ const menu=$('#assignment-menu');menu.hidden=false;
+ menu.style.left=Math.max(8,Math.min(e.clientX,innerWidth-menu.offsetWidth-8))+'px';
+ menu.style.top=Math.max(8,Math.min(e.clientY,innerHeight-menu.offsetHeight-8))+'px';
+ $('#menu-split').focus();
+});
+$('#menu-split').onclick=()=>{const source=data.assignments.find(a=>a.id===menuAssignment);closeAssignmentMenu();if(source)showSplit(source,menuDate)};
+$('#menu-copy').onclick=()=>{const source=data.assignments.find(a=>a.id===menuAssignment);closeAssignmentMenu();if(source)open('assignments',null,{...source,people:[],copyFrom:source.person})};
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('#assignment-menu'))closeAssignmentMenu()});
+document.addEventListener('scroll',()=>closeAssignmentMenu(),true);
+window.addEventListener('resize',()=>closeAssignmentMenu());
+window.addEventListener('blur',()=>closeAssignmentMenu());
+$('#assignment-menu').addEventListener('keydown',e=>{
+ if(e.key==='Escape'){e.preventDefault();closeAssignmentMenu(true)}
+ if(e.key==='Tab')closeAssignmentMenu();
+ if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();(document.activeElement===$('#menu-split')?$('#menu-copy'):$('#menu-split')).focus()}
+});
+function paletteColor(index,offset=0){
+ const h=((index*137.508+offset)%360)/60,s=.58,l=.38,c=(1-Math.abs(2*l-1))*s,x=c*(1-Math.abs(h%2-1)),m=l-c/2;
+ const rgb=h<1?[c,x,0]:h<2?[x,c,0]:h<3?[0,c,x]:h<4?[0,x,c]:h<5?[x,0,c]:[c,0,x];
+ return '#'+rgb.map(v=>Math.round((v+m)*255).toString(16).padStart(2,'0')).join('');
+}
+let paletteOffset=0;
+$('#generate-colors').onclick=()=>{
+ if(kind!=='projects')return;
+ if(!confirm('Nadać nowe kolory wszystkim projektom? Zmiana obejmie cały plan, również jeśli później zamkniesz formularz przyciskiem Anuluj. Plik na dysku zmieni się dopiero po kliknięciu Zapisz.'))return;
+ paletteOffset=(paletteOffset+37)%360;
+ data.projects.forEach((p,i)=>p.color=paletteColor(i,paletteOffset));
+ const current=data.projects.find(p=>p.id===edit);
+ $('#fields input[name="color"]').value=current?.color||paletteColor(data.projects.length,paletteOffset);
+ save();toast('Wygenerowano kolory projektów — kliknij Zapisz, aby zapisać plik.');
+};
+const zoomScales=['week','month','twoMonths','threeMonths','sixMonths','year'];
+function zoomScale(current,direction){return zoomScales[Math.max(0,Math.min(zoomScales.length-1,zoomScales.indexOf(current)+direction))]}
+let lastWheelZoom=0,wheelSum=0;
+$('#chart').addEventListener('wheel',e=>{
+ if(e.ctrlKey||e.shiftKey||dragState||drawState||$('#modal').open||$('#split-dialog').open||!e.target.closest('.track,.days,.month-segments'))return;
+ if(Math.abs(e.deltaX)>Math.abs(e.deltaY)||!e.deltaY)return;
+ e.preventDefault();
+ const now=Date.now();if(now-lastWheelZoom<200)return;
+ wheelSum+=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?200:1);
+ if(Math.abs(wheelSum)<40)return;
+ const current=$('#scale').value,next=zoomScale(current,wheelSum>0?1:-1);
+ wheelSum=0;if(next===current)return;
+ const target=e.target.closest('.track,.days,.month-segments'),rect=target.getBoundingClientRect(),[start,end]=bounds(),days=(dt(end)-dt(start))/DAY+1;
+ const day=plus(start,Math.max(0,Math.min(days-1,Math.floor((e.clientX-rect.left)/rect.width*days))));
+ cursor=dt(day);$('#scale').value=next;
+ data.calendarDisplay={...displaySettings(),unit:['sixMonths','year'].includes(next)?'weeks':'days'};
+ lastWheelZoom=now;closeAssignmentMenu();save();
+},{passive:false});

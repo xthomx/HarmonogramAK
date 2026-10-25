@@ -142,3 +142,12 @@ body.schedule-view footer{margin-top:5px;font-size:9px}
 #split-help{margin:12px 0;line-height:1.6;font-size:12px;color:#667285;overflow-wrap:anywhere}
 #split-panel .split-actions{display:flex;flex-wrap:wrap;gap:8px}
 #split-panel .split-actions button{max-width:100%;white-space:normal}
+
+/* Calendar task context menu and independent split dialog. */
+#assignment-menu{position:fixed;z-index:1000;max-width:calc(100vw - 16px);padding:5px;background:#fff;border:1px solid #dce3e9;border-radius:9px;box-shadow:0 8px 30px #122b2a33}
+#assignment-menu:not([hidden]){display:grid;gap:3px}
+#assignment-menu button{text-align:left;border:0;white-space:normal}
+#assignment-menu button:hover,#assignment-menu button:focus{background:#eef5f0}
+#split-dialog{width:460px}
+#split-preview{font-size:12px;line-height:1.7;overflow-wrap:anywhere}
+#split-error{font-size:12px;color:#ba5847}
