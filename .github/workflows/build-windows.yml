@@ -74,6 +74,14 @@ jobs:
       - name: Build Windows application
         working-directory: ${{ steps.project.outputs.dir }}
         run: python -m PyInstaller --noconfirm --clean --onedir --windowed --name PlanZespolu --add-data "ui;ui" --collect-all webview main.py
+      - name: Build update helper
+        working-directory: ${{ steps.project.outputs.dir }}
+        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name HarmonogramUpdater --distpath dist/PlanZespolu updater_runner.py
+      - name: Smoke test packaged update helper
+        working-directory: ${{ steps.project.outputs.dir }}
+        run: |
+          $process = Start-Process -FilePath 'dist/PlanZespolu/HarmonogramUpdater.exe' -ArgumentList '--self-test' -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw 'Update helper smoke test failed' }
       - name: Package complete application
         working-directory: ${{ steps.project.outputs.dir }}
         run: |
@@ -92,7 +100,7 @@ jobs:
           retention-days: 30
 
   release:
-    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish_release)
+    if: (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish_release)
     needs: build
     concurrency:
       group: release-${{ needs.build.outputs.release_tag }}

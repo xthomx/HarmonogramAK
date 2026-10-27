@@ -11,6 +11,7 @@ import xlsx_format
 from preferences import Preferences
 from app_version import APP_VERSION
 from updates import check_updates, RELEASES_URL
+import auto_update
 
 MAX_BYTES = 5_000_000
 
@@ -54,6 +55,7 @@ class Api:
         self._window = None
         self._path = None
         self._pending = None
+        self._update = None
         self._lock = threading.Lock()
         self._preferences = Preferences(preferences_path)
 
@@ -102,6 +104,25 @@ class Api:
     def check_updates(self):
         # pywebview executes API calls outside the UI thread.
         return check_updates()
+
+    def prepare_update(self):
+        with self._lock:
+            if self._update is None:
+                self._update = auto_update.prepare()
+            return {'version': self._update['version']}
+
+    def install_update(self):
+        import subprocess
+        with self._lock:
+            if not self._update:
+                raise RuntimeError('Najpierw pobierz aktualizację.')
+            update = self._update
+            subprocess.Popen([update['runner'], '--pid', str(os.getpid()),
+                              '--staged', update['staged'], '--target', update['target']],
+                             cwd=update['folder'])
+            self._update = None
+        self._window.destroy()
+        return True
 
     def open_updates_page(self):
         import webbrowser

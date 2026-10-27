@@ -149,7 +149,7 @@ $('#check-updates').onclick=async()=>{
   const api=await desktopApi(),result=await api.check_updates();
   if(result.current)$('#app-version').textContent='Wersja '+result.current;
   if(result.status==='available'){
-   status.textContent='Dostępna wersja '+result.latest+'. Zapisz plan, pobierz nową paczkę i zamknij program przed jej rozpakowaniem.';
+   status.textContent='Dostępna wersja '+result.latest+'. Kliknij „Zainstaluj i uruchom ponownie”.';
    download.hidden=false;
   }else if(result.status==='current')status.textContent='Masz aktualną wersję ('+result.current+').';
   else if(result.status==='pending')status.textContent='Wersja '+result.latest+' nie ma jeszcze gotowej paczki Windows. Spróbuj później.';
@@ -158,10 +158,27 @@ $('#check-updates').onclick=async()=>{
  }catch(e){status.textContent='Nie udało się sprawdzić aktualizacji. '+e.message}
  finally{button.disabled=false}
 };
+let installingUpdate=false;
 $('#download-update').onclick=async()=>{
- try{const api=await desktopApi();await api.open_updates_page()}
- catch(e){$('#update-status').textContent=e.message}
+ if(installingUpdate||fileBusy)return;
+ if($('#modal').open||$('#split-dialog').open){toast('Najpierw zastosuj zmiany w formularzu.');return}
+ if(!confirm('Pobrać aktualizację i ponownie uruchomić program? Niezapisane zmiany zostaną najpierw zapisane.'))return;
+ installingUpdate=true;
+ try{
+  if(isDirty()){await savePlan();if(isDirty())throw Error('Nie zapisano zmian. Aktualizacja została wstrzymana.')}
+  fileBusy=true;updateFileStatus();$('main').inert=true;$('aside').inert=true;
+  $('#update-status').textContent='Pobieranie i sprawdzanie aktualizacji…';
+  const api=await desktopApi();await api.prepare_update();
+  $('#update-status').textContent='Aktualizacja gotowa. Potwierdź zamknięcie programu, jeśli pojawi się pytanie.';
+  await api.install_update();
+ }catch(e){$('#update-status').textContent='Nie zainstalowano aktualizacji: '+e.message}
+ finally{installingUpdate=false;fileBusy=false;$('main').inert=false;$('aside').inert=false;updateFileStatus()}
 };
+let startupUpdateCheck=false;
+function checkUpdatesOnStartup(){if(startupUpdateCheck)return;startupUpdateCheck=true;setTimeout(()=>$('#check-updates').click(),2500)}
+window.addEventListener('pywebviewready',checkUpdatesOnStartup);
+if(window.pywebview?.api)checkUpdatesOnStartup();
+
 
 $('#copy-assignment').onclick=()=>{
  if(kind!=='assignments'||!edit)return;
