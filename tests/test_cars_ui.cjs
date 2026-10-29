@@ -10,15 +10,27 @@ const path=require('node:path');
   page.on('pageerror',e=>errors.push(e.message));
   await page.goto(pathToFileURL(path.resolve('ui/index.html')).href);
   await page.click('[data-view="cars"]');
+  await page.evaluate(()=>{data.projects=[{id:'p1',name:'Linia A',shortName:'LA',topicNumber:'001',description:'Projekt A',color:'#347c68'}]});
   await page.click('#cars-new-car');
+  assert.equal(await page.locator('#car-fields input[readonly]').inputValue(),'a1');
+  await page.selectOption('#car-fields [name=project]','p1');
+  for(const [key,value] of Object.entries({driver:'Jan Kowalski',route:'Bratysława',odometer:'123456',vignetteRO:'2027-01-02',vignetteSK:'2027-02-03',vignetteHU:'2027-03-04',vignetteCZ:'2027-04-05',vignetteAT:'2027-05-06',de:'Euro 6',inspection:'2027-10-12',tires:'Zimowe',kp:'O2',notes:'Auto sekcyjne'})){
+   await page.fill('#car-fields [name='+key+']',value);
+  }
   await page.fill('#car-fields [name=name]','Skoda Octavia');
   await page.fill('#car-fields [name=plate]','SK 12345');
   await page.fill('#car-fields [name=seats]','5');
   await page.fill('#car-fields [name=owner]','Sekcja PLC');
   await page.click('#car-form button[type=submit]');
   assert.equal(await page.evaluate(()=>data.cars.length),1);
+  assert.equal(await page.evaluate(()=>data.cars[0].id),'a1');
+  assert.equal(await page.evaluate(()=>data.cars[0].odometer),123456);
   await page.click('#cars-list-tab');
   assert.match(await page.locator('#cars-list').innerText(),/SK 12345/);
+  await page.click('[data-car-edit="a1"]');
+  assert.equal(await page.locator('#car-fields [name=inspection]').inputValue(),'2027-10-12');
+  assert.equal(await page.locator('#car-fields [name=notes]').inputValue(),'Auto sekcyjne');
+  await page.click('#car-form button[type=submit]');
   await page.evaluate(()=>{
    data.projects=[{id:'p1',name:'Linia A',shortName:'LA',topicNumber:'001',description:'Projekt A',color:'#347c68'}];
    data.cars.push({id:'c2',name:'Drugie auto',plate:'SK 67890',seats:2,usage:'Indywidualne',owner:'Jan'});
@@ -30,6 +42,7 @@ const path=require('node:path');
   await page.fill('#car-fields [name=passengers]','4');
   await page.click('#car-form button[type=submit]');
   assert.equal(await page.evaluate(()=>data.carReservations.length),1);
+  assert.equal(await page.evaluate(()=>data.carReservations[0].id),'ra1');
   const booking=page.locator('#cars-chart [data-booking]').first();
   assert.match(await booking.innerText(),/4\/5/);
   // Click opens edit, without creating a second booking.
@@ -63,6 +76,7 @@ const path=require('node:path');
   await page.click('#catalog [data-item="p1"]');
   page.once('dialog',dialog=>dialog.accept());await page.click('#delete');
   assert.equal(await page.evaluate(()=>data.carReservations.length),0,'Deleting a project removes linked car reservations');
+  assert.equal(await page.evaluate(()=>data.cars[0].project),'');
   assert.deepEqual(errors,[]);
   console.log('Cars UI: create/configure, reserve/edit, conflicts, capacity, resize, year view, theme, project deletion PASS');
  }finally{await browser.close()}

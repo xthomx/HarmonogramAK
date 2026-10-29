@@ -26,6 +26,21 @@ def validate(plan):
         if car.get('usage') not in ('Sekcyjne', 'Indywidualne') or not isinstance(car.get('owner', ''), str):
             raise ValueError('Nieprawidłowy typ lub użytkownik samochodu.')
     projects = {x['id'] for x in plan['projects']}
+    for car in cars:
+        if car.get('project') and car['project'] not in projects:
+            raise ValueError('Samochód wskazuje nieistniejący projekt.')
+        for key in ('project','driver','route','de','tires','kp','notes'):
+            if key in car and not isinstance(car[key],str):
+                raise ValueError('Nieprawidłowe pole samochodu: '+key)
+        if 'odometer' in car and (type(car['odometer']) is not int or not 0 <= car['odometer'] <= 99999999):
+            raise ValueError('Stan licznika musi być całkowitą liczbą kilometrów od 0 do 99999999.')
+        for key in ('vignetteRO','vignetteSK','vignetteHU','vignetteCZ','vignetteAT','inspection'):
+            if key in car and car[key] != '':
+                try:
+                    if date.fromisoformat(car[key]).isoformat()!=car[key]: raise ValueError()
+                except (TypeError,ValueError):
+                    raise ValueError('Nieprawidłowa data: '+key)
+
     by_car = {}
     for booking in reservations:
         car = by_id.get(booking.get('car'))

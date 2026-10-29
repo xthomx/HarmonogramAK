@@ -7,8 +7,11 @@ import fleet
 FIELDS = ['Typ', 'ID', 'Nazwa', 'Specjalizacja', 'Grupa', 'Skrot', 'Nr_tematu', 'Opis', 'Kolor',
           'Osoba_ID', 'Projekt_ID', 'Osoba', 'Projekt', 'Od', 'Do', 'Zaangazowanie_proc', 'Notatka', 'Ustawienie', 'Wartosc', 'Etap', 'Samochod_ID', 'Rejestracja', 'Miejsca', 'Uzytkowanie', 'Uzytkownik', 'Liczba_osob']
 CAR_FIELDS = {'Samochod_ID', 'Rejestracja', 'Miejsca', 'Uzytkowanie', 'Uzytkownik', 'Liczba_osob'}
+CAR_EXTRA = {'project': 'Projekt_ID', 'driver': 'Kierowca', 'route': 'Gdzie_jezdzi', 'odometer': 'Stan_licznika', 'vignetteRO': 'Winieta_RO', 'vignetteSK': 'Winieta_SK', 'vignetteHU': 'Winieta_HU', 'vignetteCZ': 'Winieta_CZ', 'vignetteAT': 'Winieta_AT', 'de': 'DE', 'inspection': 'Przeglad', 'tires': 'Opony', 'kp': 'KP_O2_12_10_2026', 'notes': 'Uwagi_auta'}
+FIELDS += [c for c in CAR_EXTRA.values() if c not in FIELDS]
+CAR_FIELDS.update(set(CAR_EXTRA.values()) - {"Projekt_ID"})
 MAPS = {
-    'SAMOCHOD': ('cars', {'id':'ID','name':'Nazwa','plate':'Rejestracja','seats':'Miejsca','usage':'Uzytkowanie','owner':'Uzytkownik'}),
+    'SAMOCHOD': ('cars', {'id':'ID','name':'Nazwa','plate':'Rejestracja','seats':'Miejsca','usage':'Uzytkowanie','owner':'Uzytkownik', **CAR_EXTRA}),
     'REZERWACJA_AUTA': ('carReservations', {'id':'ID','car':'Samochod_ID','project':'Projekt_ID','start':'Od','end':'Do','passengers':'Liczba_osob','note':'Notatka'}),
     'OSOBA': ('people', {'id':'ID','name':'Nazwa','role':'Specjalizacja','group':'Grupa'}),
     'PROJEKT': ('projects', {'id':'ID','name':'Nazwa','shortName':'Skrot','topicNumber':'Nr_tematu','description':'Opis','color':'Kolor'}),
@@ -28,13 +31,18 @@ def safe(value):
 def unsafe(value):
     return value[1:] if len(value)>1 and value[0]=="'" and value[1] in DANGEROUS else value
 
+def format_version(plan):
+    if any(any(k in car for k in CAR_EXTRA) for car in plan.get('cars',[])):
+        return 'PLAN_ZESPOLU_3'
+    return 'PLAN_ZESPOLU_2' if 'cars' in plan or 'carReservations' in plan else 'PLAN_ZESPOLU_1'
+
 def dumps(plan, extension):
     fleet.validate(plan)
     out = io.StringIO(newline='')
     writer = csv.DictWriter(out, fieldnames=FIELDS, delimiter='\t' if extension=='.txt' else ';', lineterminator='\r\n')
     writer.writeheader()
     def write(row): writer.writerow({k:safe(v) for k,v in row.items()})
-    write({'Typ':'FORMAT','Wartosc':'PLAN_ZESPOLU_2' if 'cars' in plan or 'carReservations' in plan else 'PLAN_ZESPOLU_1'})
+    write({'Typ':'FORMAT','Wartosc':format_version(plan)})
     for typ,(key,mapping) in MAPS.items():
         for item in plan.get(key,[]):
             row={'Typ':typ, **{col:item.get(prop,'') for prop,col in mapping.items()}}
@@ -75,16 +83,20 @@ def loads(text, extension):
         if not any(row.values()): continue
         typ=row['Typ']
         if typ=='FORMAT':
-            if found or row['Wartosc'] not in ('PLAN_ZESPOLU_1','PLAN_ZESPOLU_2'): raise ValueError('Nieobsługiwana wersja pliku.')
+            if found or row['Wartosc'] not in ('PLAN_ZESPOLU_1','PLAN_ZESPOLU_2','PLAN_ZESPOLU_3'): raise ValueError('Nieobsługiwana wersja pliku.')
             found=True
-            if row['Wartosc']=='PLAN_ZESPOLU_2':
+            if row['Wartosc'] in ('PLAN_ZESPOLU_2','PLAN_ZESPOLU_3'):
                 plan.setdefault('cars',[]);plan.setdefault('carReservations',[])
         elif typ in MAPS:
             key,mapping=MAPS[typ];item={prop:row.get(col,'') for prop,col in mapping.items()}
             if typ=='PRZYPISANIE':
                 item['load']=int(item['load'])
                 item['stage']=stage(item.get('stage'))
-            if typ=='SAMOCHOD': item['seats']=int(item['seats'])
+            if typ=='SAMOCHOD':
+                item['seats']=int(item['seats'])
+                for prop in CAR_EXTRA:
+                    if item[prop]=='': item.pop(prop)
+                if 'odometer' in item: item['odometer']=int(item['odometer'])
             if typ=='REZERWACJA_AUTA': item['passengers']=int(item['passengers'])
             plan.setdefault(key,[]).append(item)
         elif typ=='USTAWIENIE':

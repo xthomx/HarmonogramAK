@@ -9,6 +9,12 @@ function validateFleet(plan){
   if(!['Sekcyjne','Indywidualne'].includes(car.usage)||typeof(car.owner??'')!=='string')throw Error('Nieprawidłowy typ użytkowania samochodu.');
  }
  const validDate=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(Date.parse(s+'T00:00:00Z'))&&new Date(s+'T00:00:00Z').toISOString().slice(0,10)===s;
+ for(const car of cars){
+  if(car.project&&!plan.projects?.some(p=>p.id===car.project))throw Error('Wybierz istniejący projekt samochodu.');
+  for(const key of ['project','driver','route','de','tires','kp','notes'])if(key in car&&typeof car[key]!=='string')throw Error('Nieprawidłowe pole samochodu: '+key);
+  if('odometer' in car&&(!Number.isInteger(car.odometer)||car.odometer<0||car.odometer>99999999))throw Error('Stan licznika: liczba całkowita od 0 do 99999999 km.');
+  for(const key of ['vignetteRO','vignetteSK','vignetteHU','vignetteCZ','vignetteAT','inspection'])if(key in car&&car[key]!==''&&!validDate(car[key]))throw Error('Nieprawidłowa data ważności: '+key);
+ }
  const byCar=new Map();
  for(const b of bookings){
   const car=cars.find(c=>c.id===b.car);
@@ -25,4 +31,17 @@ function validateFleet(plan){
  return true;
 }
 function validFleet(plan){try{return validateFleet(plan)}catch{return false}}
-if(typeof module!=='undefined'&&module.exports)module.exports={validateFleet,validFleet};
+function nextFleetId(items,prefix){
+ const numbers=items.map(item=>new RegExp('^'+prefix+'([1-9][0-9]*)$').exec(item.id)).filter(Boolean).map(m=>Number(m[1]));
+ const next=Math.max(0,...numbers)+1;
+ if(!Number.isSafeInteger(next))throw Error('Przekroczono zakres identyfikatorów.');
+ return prefix+next;
+}
+function normalizeFleetIds(plan){
+ validateFleet(plan);
+ const cars=plan.cars||[],bookings=plan.carReservations||[],mapping=new Map();
+ for(const car of cars)if(!/^a[1-9][0-9]*$/.test(car.id)){const old=car.id;car.id=nextFleetId(cars,'a');mapping.set(old,car.id)}
+ for(const booking of bookings){if(mapping.has(booking.car))booking.car=mapping.get(booking.car);if(!/^ra[1-9][0-9]*$/.test(booking.id))booking.id=nextFleetId(bookings,'ra')}
+ return plan;
+}
+if(typeof module!=='undefined'&&module.exports)module.exports={validateFleet,validFleet,nextFleetId,normalizeFleetIds};

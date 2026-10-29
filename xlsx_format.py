@@ -11,7 +11,7 @@ SHEETS = {
     'Osoby': ('OSOBA', ['ID', 'Nazwa', 'Specjalizacja', 'Grupa']),
     'Projekty': ('PROJEKT', ['ID', 'Nazwa', 'Skrot', 'Nr_tematu', 'Opis', 'Kolor']),
     'Przypisania': ('PRZYPISANIE', ['ID', 'Osoba_ID', 'Projekt_ID', 'Osoba', 'Specjalizacja', 'Grupa', 'Projekt', 'Nr_tematu', 'Od', 'Do', 'Zaangazowanie_proc', 'Notatka', 'Etap']),
-    'Samochody': ('SAMOCHOD', ['ID', 'Nazwa', 'Rejestracja', 'Miejsca', 'Uzytkowanie', 'Uzytkownik']),
+    'Samochody': ('SAMOCHOD', ['ID', 'Nazwa', 'Rejestracja', 'Miejsca', 'Uzytkowanie', 'Uzytkownik'] + list(table.CAR_EXTRA.values())),
     'Rezerwacje_aut': ('REZERWACJA_AUTA', ['ID', 'Samochod_ID', 'Nazwa', 'Rejestracja', 'Projekt_ID', 'Projekt', 'Od', 'Do', 'Liczba_osob', 'Notatka']),
     'Ustawienia': ('USTAWIENIE', ['Ustawienie', 'Wartosc']),
 }
@@ -27,16 +27,16 @@ def dumps(plan):
         sheet.append(columns)
         records = [r for r in rows if r['Typ'] == kind]
         if title == 'Ustawienia':
-            records.insert(0, {'Ustawienie': 'format', 'Wartosc': 'PLAN_ZESPOLU_2' if 'cars' in plan or 'carReservations' in plan else 'PLAN_ZESPOLU_1'})
+            records.insert(0, {'Ustawienie': 'format', 'Wartosc': table.format_version(plan)})
         for record in records:
             row_number = sheet.max_row + 1
             for col_number, column in enumerate(columns, 1):
                 value = record.get(column, '')
                 cell = sheet.cell(row_number, col_number)
-                if column in ('Od', 'Do'):
+                if column in ('Od', 'Do','Winieta_RO','Winieta_SK','Winieta_HU','Winieta_CZ','Winieta_AT','Przeglad') and value:
                     cell.value = date.fromisoformat(value)
                     cell.number_format = 'yyyy-mm-dd'
-                elif column in ('Zaangazowanie_proc','Miejsca','Liczba_osob'):
+                elif column in ('Zaangazowanie_proc','Miejsca','Liczba_osob','Stan_licznika') and value != '':
                     cell.value = int(value)
                 else:
                     cell.value = value
@@ -78,6 +78,7 @@ def loads(raw):
             names = [cell.value for cell in header]
             expected = set(columns)
             allowed = [expected, expected - {'Etap'}] if kind == 'PRZYPISANIE' else [expected]
+            if kind == 'SAMOCHOD': allowed.append(expected - set(table.CAR_EXTRA.values()))
             if len(names) != len(set(names)) or set(names) not in allowed:
                 raise ValueError('Nieprawidłowe nagłówki w arkuszu: ' + title)
             for cells in iterator:
@@ -89,7 +90,7 @@ def loads(raw):
                     if cell.data_type in ('f', 'e'):
                         raise ValueError(f'{title}!{cell.coordinate}: wpisz wartość zamiast formuły lub błędu.')
                     if isinstance(value, (datetime, date)):
-                        if name not in ('Od', 'Do'):
+                        if name not in ('Od', 'Do','Winieta_RO','Winieta_SK','Winieta_HU','Winieta_CZ','Winieta_AT','Przeglad'):
                             raise ValueError(f'{title}!{cell.coordinate}: oczekiwany tekst, nie data.')
                         value = value.date() if isinstance(value, datetime) else value
                         value = value.isoformat()

@@ -1,4 +1,7 @@
 let carsCursor=dt(today),carsTab='calendar',carEdit=null,carEditKind='cars',carDrag=null;
+const carExtraFields=['project','driver','route','odometer','vignetteRO','vignetteSK','vignetteHU','vignetteCZ','vignetteAT','de','inspection','tires','kp','notes'];
+const carColumns=[['ID','id'],['Nr rej.','plate'],['Marka i model','name'],['Projekt','project'],['Kierowca','driver'],['Gdzie jeździ','route'],['Stan licznika','odometer'],['Winieta RO','vignetteRO'],['Winieta SK','vignetteSK'],['Winieta HU','vignetteHU'],['Winieta CZ','vignetteCZ'],['Winieta AT','vignetteAT'],['DE','de'],['PRZEGLĄD','inspection'],['OPONY','tires'],['KP O2 12.10.2026','kp'],['Uwagi','notes'],['Miejsca','seats'],['Użytkowanie','usage'],['Użytkownik / sekcja','owner']];
+function carColumnValue(car,key){if(key==='project')return projectIdentity(data.projects.find(p=>p.id===car.project)||{});if(key==='odometer')return car.odometer===undefined?'':car.odometer.toLocaleString('pl-PL')+' km';return car[key]??''}
 const carsList=()=>data.cars||[],carBookings=()=>data.carReservations||[];
 const carsBounds=()=>bounds(carsCursor,$('#cars-scale').value);
 function fleetChange(key,items){const next={...data,[key]:items};validateFleet(next);data=next;save()}
@@ -11,7 +14,7 @@ function renderCars(){
  const select=$('#cars-project-filter'),chosen=select.value;
  select.innerHTML='<option value="">Wszystkie projekty</option>'+data.projects.map(p=>'<option value="'+esc(p.id)+'">'+esc(projectIdentity(p))+'</option>').join('');select.value=chosen;
  if(!calendar){
-  $('#cars-list').innerHTML='<div class="catalog-table"><div class="catalog-heading car-columns"><span>Samochód</span><span>Rejestracja</span><span>Miejsca</span><span>Użytkowanie</span><span>Użytkownik / sekcja</span><span></span></div>'+carsList().map(c=>'<div class="catalog-row car-columns">'+catalogCell(c.name,'catalog-name')+catalogCell(c.plate)+catalogCell(c.seats)+catalogCell(c.usage)+catalogCell(c.owner)+'<button data-car-edit="'+esc(c.id)+'">Edytuj</button></div>').join('')+'</div>'+(carsList().length?'':'<div class="empty">Dodaj pierwszy samochód, aby rozpocząć rezerwacje.</div>');
+  $('#cars-list').innerHTML='<div class="catalog-table"><div class="catalog-heading car-columns">'+carColumns.map(([label])=>'<span>'+label+'</span>').join('')+'<span></span></div>'+carsList().map(c=>'<div class="catalog-row car-columns">'+carColumns.map(([,key])=>catalogCell(carColumnValue(c,key),key==='name'?'catalog-name':'')).join('')+'<button data-car-edit="'+esc(c.id)+'">Edytuj</button></div>').join('')+'</div>'+(carsList().length?'':'<div class="empty">Dodaj pierwszy samochód, aby rozpocząć rezerwacje.</div>');
   $('#cars-list').querySelectorAll('[data-car-edit]').forEach(b=>b.onclick=()=>openCar(b.dataset.carEdit));return;
  }
  const [start,end]=carsBounds(),days=Array.from({length:(dt(end)-dt(start))/DAY+1},(_,i)=>plus(start,i)),weekly=$('#cars-unit').value==='weeks',weeks=weekColumns(days),q=$('#cars-search').value.trim().toLocaleLowerCase('pl'),project=select.value,usage=$('#cars-usage-filter').value;
@@ -25,7 +28,7 @@ function renderCars(){
  for(const car of carsList()){
   if(usage&&car.usage!==usage)continue;
   let own=carBookings().filter(b=>b.car===car.id&&b.start<=end&&b.end>=start&&(!project||b.project===project));
-  const matches=[car.name,car.plate,car.owner].join(' ').toLocaleLowerCase('pl').includes(q);
+  const matches=[car.id,car.name,car.plate,car.owner,car.driver,car.route].join(' ').toLocaleLowerCase('pl').includes(q);
   if(q&&!matches)own=own.filter(b=>projectText(data.projects.find(p=>p.id===b.project)).toLocaleLowerCase('pl').includes(q));
   if((project||q&&!matches)&&!own.length)continue;count++;booked+=own.length;
   const grid='<div class="grid-bg">'+(weekly?weeks.map(w=>'<div class="cell week-cell" style="flex:'+w.count+'"></div>'):days.map(d=>'<div class="cell '+(weekend(d)?'weekend':'')+'"></div>')).join('')+'</div>';
@@ -36,23 +39,24 @@ function renderCars(){
  $('#cars-summary').textContent='Samochody: '+count+' / '+carsList().length+' · Rezerwacje w widoku: '+booked;
 }
 function carDialog(title,fields,kind,id){
- carEdit=id||null;carEditKind=kind;$('#car-modal-title').textContent=title;$('#car-fields').innerHTML=fields;$('#car-error').textContent='';$('#car-delete').hidden=!id;$('#car-modal').showModal();
+ carEdit=id||null;carEditKind=kind;$('#car-modal').classList.toggle('car-details-modal',kind==='cars');$('#car-fields').classList.toggle('car-details-fields',kind==='cars');$('#car-modal-title').textContent=title;$('#car-fields').innerHTML=fields;$('#car-error').textContent='';$('#car-delete').hidden=!id;$('#car-modal').showModal();
 }
 function openCar(id){
  const c=carsList().find(x=>x.id===id)||{};
- carDialog(id?'Edytuj samochód':'Dodaj samochód',field('Nazwa / model','name',c.name||'','text','required maxlength="80"')+field('Numer rejestracyjny','plate',c.plate||'','text','required maxlength="30"')+field('Liczba miejsc (łącznie z kierowcą)','seats',c.seats||5,'number','required min="1" max="100" step="1"')+'<label>Typ użytkowania<select name="usage"><option '+(c.usage==='Sekcyjne'?'selected':'')+'>Sekcyjne</option><option '+(c.usage==='Indywidualne'?'selected':'')+'>Indywidualne</option></select></label>'+field('Użytkownik / sekcja (opcjonalnie)','owner',c.owner||'','text','maxlength="80"'),'cars',id);
+ const fields='<label>ID samochodu<input readonly value="'+esc(c.id||nextFleetId(carsList(),'a'))+'"></label>'+field('Nr rej.','plate',c.plate||'','text','required maxlength="30"')+field('Marka i model','name',c.name||'','text','required maxlength="80"')+'<label>Projekt<select name="project"><option value="">Bez stałego przypisania</option>'+data.projects.map(p=>'<option value="'+esc(p.id)+'" '+(c.project===p.id?'selected':'')+'>'+esc(projectIdentity(p))+'</option>').join('')+'</select></label>'+field('Kierowca','driver',c.driver||'','text','maxlength="120"')+field('Gdzie jeździ','route',c.route||'','text','maxlength="250"')+field('Stan licznika (km)','odometer',c.odometer??'','number','min="0" max="99999999" step="1"')+['RO','SK','HU','CZ','AT'].map(country=>field('Winieta '+country+' — ważna do','vignette'+country,c['vignette'+country]||'','date')).join('')+field('DE','de',c.de||'','text','maxlength="250"')+field('PRZEGLĄD — ważny do','inspection',c.inspection||'','date')+field('OPONY','tires',c.tires||'','text','maxlength="250"')+field('KP O2 12.10.2026','kp',c.kp||'','text','maxlength="250"')+'<label class="car-wide-field">Uwagi<textarea name="notes" rows="2" maxlength="2000">'+esc(c.notes||'')+'</textarea></label>'+field('Liczba miejsc (łącznie z kierowcą)','seats',c.seats||5,'number','required min="1" max="100" step="1"')+'<label>Typ użytkowania<select name="usage"><option '+(c.usage==='Sekcyjne'?'selected':'')+'>Sekcyjne</option><option '+(c.usage==='Indywidualne'?'selected':'')+'>Indywidualne</option></select></label>'+field('Użytkownik / sekcja','owner',c.owner||'','text','maxlength="80"')+'<small class="car-wide-field">Projekt w konfiguracji oznacza stałe przypisanie auta. Terminy wyjazdów ustalasz osobno w kalendarzu rezerwacji.</small>';
+ carDialog(id?'Edytuj samochód':'Dodaj samochód',fields,'cars',id);
 }
 function openCarReservation(id,preset={}){
  if(!carsList().length){toast('Najpierw dodaj samochód w zakładce Konfiguracja samochodów.');carsTab='fleet';renderCars();return}
  if(!data.projects.length){toast('Najpierw dodaj projekt w zakładce Projekty.');return}
- const b=carBookings().find(x=>x.id===id)||preset;
- carDialog(id?'Edytuj rezerwację':'Nowa rezerwacja samochodu','<label>Samochód<select name="car">'+carsList().map(c=>'<option value="'+esc(c.id)+'" '+(c.id===b.car?'selected':'')+'>'+esc(carCaption(c))+' · '+c.seats+' miejsc · '+esc(c.usage)+'</option>').join('')+'</select></label><label>Projekt — Skrót · Nr tematu · Nazwa<select name="project">'+data.projects.map(p=>'<option value="'+esc(p.id)+'" '+(p.id===b.project?'selected':'')+'>'+esc(projectIdentity(p))+'</option>').join('')+'</select></label><div class="dates">'+field('Od','start',b.start||today,'date','required')+field('Do (włącznie)','end',b.end||b.start||today,'date','required')+'</div>'+field('Liczba osób (łącznie z kierowcą)','passengers',b.passengers||1,'number','required min="1" max="100" step="1"')+field('Notatka','note',b.note||'','text','maxlength="250"')+'<small>Rezerwacja zajmuje całe auto. Daty końcowe są wliczone. Nakładające się rezerwacje są blokowane.</small>','carReservations',id);
+ const b={...preset,...carBookings().find(x=>x.id===id)};if(!b.project)b.project=carsList().find(c=>c.id===(b.car||carsList()[0]?.id))?.project||'';
+ carDialog(id?'Edytuj rezerwację':'Nowa rezerwacja samochodu','<label>ID rezerwacji<input readonly value="'+esc(b.id||nextFleetId(carBookings(),'ra'))+'"></label><label>Samochód<select name="car">'+carsList().map(c=>'<option value="'+esc(c.id)+'" '+(c.id===b.car?'selected':'')+'>'+esc(carCaption(c))+' · '+c.seats+' miejsc · '+esc(c.usage)+'</option>').join('')+'</select></label><label>Projekt — Skrót · Nr tematu · Nazwa<select name="project">'+data.projects.map(p=>'<option value="'+esc(p.id)+'" '+(p.id===b.project?'selected':'')+'>'+esc(projectIdentity(p))+'</option>').join('')+'</select></label><div class="dates">'+field('Od','start',b.start||today,'date','required')+field('Do (włącznie)','end',b.end||b.start||today,'date','required')+'</div>'+field('Liczba osób (łącznie z kierowcą)','passengers',b.passengers||1,'number','required min="1" max="100" step="1"')+field('Notatka','note',b.note||'','text','maxlength="250"')+'<small>Rezerwacja zajmuje całe auto. Daty końcowe są wliczone. Nakładające się rezerwacje są blokowane.</small>','carReservations',id);
  const carInput=$('#car-fields [name=car]'),seatsInput=$('#car-fields [name=passengers]');carInput.onchange=()=>{seatsInput.max=carsList().find(c=>c.id===carInput.value).seats};carInput.onchange();
 }
 $('#car-form').onsubmit=e=>{
  e.preventDefault();const values=Object.fromEntries(new FormData(e.target));
- if(carEditKind==='cars'){values.name=values.name.trim();values.plate=values.plate.trim().toUpperCase();values.owner=values.owner.trim();values.seats=Number(values.seats)}else values.passengers=Number(values.passengers);
- values.id=carEdit||uid();
+ if(carEditKind==='cars'){values.name=values.name.trim();values.plate=values.plate.trim().toUpperCase();values.owner=values.owner.trim();values.seats=Number(values.seats);for(const key of carExtraFields){if(typeof values[key]==='string')values[key]=values[key].trim();if(values[key]==='')delete values[key]}if(values.odometer!==undefined)values.odometer=Number(values.odometer)}else values.passengers=Number(values.passengers);
+ values.id=carEdit||nextFleetId(carEditKind==='cars'?carsList():carBookings(),carEditKind==='cars'?'a':'ra');
  try{const items=carEditKind==='cars'?carsList():carBookings();fleetChange(carEditKind,carEdit?items.map(x=>x.id===carEdit?values:x):[...items,values]);$('#car-modal').close();toast('Zastosowano zmiany — kliknij Zapisz, aby zapisać plik.')}catch(error){$('#car-error').textContent=error.message}
 };
 $('#car-delete').onclick=()=>{

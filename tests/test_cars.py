@@ -55,3 +55,29 @@ class CarsTests(unittest.TestCase):
         book=load_workbook(io.BytesIO(xlsx_format.dumps(self.plan)));book.remove(book['Rezerwacje_aut'])
         out=io.BytesIO();book.save(out);book.close()
         with self.assertRaises(ValueError):xlsx_format.loads(out.getvalue())
+
+    def test_expanded_car_fields_roundtrip_and_types(self):
+        extra={'project':'j1','driver':'Jan Kowalski','route':'Polska / RO','odometer':123456,
+               'vignetteRO':'2027-10-12','vignetteSK':'2027-01-01','vignetteHU':'2027-02-01',
+               'vignetteCZ':'2027-03-01','vignetteAT':'2027-04-01','de':'Zielona naklejka',
+               'inspection':'2027-10-12','tires':'Zimowe','kp':'O2 12.10.2026','notes':'=Nie formuła\nDruga linia'}
+        self.plan['cars'][0].update(extra)
+        for ext in ('.csv','.txt'):
+            text=plan_format.dumps(self.plan,ext);self.assertIn('PLAN_ZESPOLU_3',text)
+            self.assertEqual(plan_format.loads(text,ext),self.plan)
+        raw=xlsx_format.dumps(self.plan);self.assertEqual(xlsx_format.loads(raw),self.plan)
+        book=load_workbook(io.BytesIO(raw));sheet=book['Samochody'];headers={cell.value:cell.column for cell in sheet[1]}
+        self.assertEqual(sheet.cell(2,headers['Stan_licznika']).value,123456)
+        self.assertEqual(sheet.cell(2,headers['Uwagi_auta']).data_type,'s')
+        self.assertEqual(sheet.cell(2,headers['Winieta_RO']).value.date().isoformat(),'2027-10-12');book.close()
+
+    def test_previous_vehicle_sheet_without_new_columns(self):
+        book=load_workbook(io.BytesIO(xlsx_format.dumps(self.plan)));sheet=book['Samochody']
+        sheet.delete_cols(7,sheet.max_column-6)
+        out=io.BytesIO();book.save(out);book.close()
+        self.assertEqual(xlsx_format.loads(out.getvalue()),self.plan)
+
+    def test_expanded_validation(self):
+        for changes in ({'odometer':-1},{'odometer':1.5},{'vignetteSK':'2027-02-29'},{'project':'missing'}):
+            p=copy.deepcopy(self.plan);p['cars'][0].update(changes)
+            with self.subTest(changes=changes),self.assertRaises(ValueError):fleet.validate(p)

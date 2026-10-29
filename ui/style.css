@@ -288,3 +288,25 @@ section#cars{background:#fff;border:1px solid #dfe5ea;border-radius:10px;min-wid
 [data-theme="dark"] #cars-chart .month-head{background:#253b40}
 [data-theme="dark"] .cars-tabs{border-color:#39495b}
 [data-theme="dark"] #car-error{color:#ffafa6}
+
+/* Expanded vehicle register: compact rows and horizontally scrollable details. */
+#cars-list{max-height:65vh;overflow:auto}
+#cars-list .catalog-table{width:max-content;min-width:100%}
+#cars-list .car-columns{grid-template-columns:60px 110px 180px 200px 150px 180px 120px repeat(5,115px) 140px 115px 180px 190px 260px 70px 120px 160px 75px}
+#cars-list .catalog-heading{position:sticky;top:0;z-index:4}
+#cars-list .car-columns>:nth-child(1){position:sticky;left:0;z-index:2;background:var(--car-cell-bg,#fff)}
+#cars-list .car-columns>:nth-child(2){position:sticky;left:60px;z-index:2;background:var(--car-cell-bg,#fff)}
+#cars-list .car-columns>:nth-child(3){position:sticky;left:170px;z-index:2;background:var(--car-cell-bg,#fff);box-shadow:1px 0 #dce3e9}
+#cars-list .catalog-heading{--car-cell-bg:#edf4f0}
+#cars-list .catalog-row:nth-child(odd){--car-cell-bg:#f8faf9}
+#car-modal.car-details-modal{width:min(960px,95vw);max-height:90vh;overflow:auto}
+#car-fields.car-details-fields{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 14px}
+.car-details-fields label{min-width:0}
+.car-wide-field{grid-column:1/-1}
+.car-details-fields textarea{width:100%}
+.car-details-modal .modal-actions{position:sticky;bottom:0;background:#fff;padding:12px 0;margin-bottom:0}
+[data-theme="dark"] #cars-list{--car-cell-bg:#1b2735}
+[data-theme="dark"] #cars-list .catalog-heading{--car-cell-bg:#253b40}
+[data-theme="dark"] #cars-list .catalog-row:nth-child(odd){--car-cell-bg:#202d3d}
+[data-theme="dark"] .car-details-modal .modal-actions{background:#1b2735}
+@media(max-width:700px){#car-fields.car-details-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
