@@ -6,13 +6,14 @@ import fleet
 
 FIELDS = ['Typ', 'ID', 'Nazwa', 'Specjalizacja', 'Grupa', 'Skrot', 'Nr_tematu', 'Opis', 'Kolor',
           'Osoba_ID', 'Projekt_ID', 'Osoba', 'Projekt', 'Od', 'Do', 'Zaangazowanie_proc', 'Notatka', 'Ustawienie', 'Wartosc', 'Etap', 'Samochod_ID', 'Rejestracja', 'Miejsca', 'Uzytkowanie', 'Uzytkownik', 'Liczba_osob']
-CAR_FIELDS = {'Samochod_ID', 'Rejestracja', 'Miejsca', 'Uzytkowanie', 'Uzytkownik', 'Liczba_osob'}
+FIELDS += ['Kierowca_ID']
+CAR_FIELDS = {'Kierowca_ID','Samochod_ID', 'Rejestracja', 'Miejsca', 'Uzytkowanie', 'Uzytkownik', 'Liczba_osob'}
 CAR_EXTRA = {'project': 'Projekt_ID', 'driver': 'Kierowca', 'route': 'Gdzie_jezdzi', 'odometer': 'Stan_licznika', 'vignetteRO': 'Winieta_RO', 'vignetteSK': 'Winieta_SK', 'vignetteHU': 'Winieta_HU', 'vignetteCZ': 'Winieta_CZ', 'vignetteAT': 'Winieta_AT', 'de': 'DE', 'inspection': 'Przeglad', 'tires': 'Opony', 'kp': 'KP_O2_12_10_2026', 'notes': 'Uwagi_auta'}
 FIELDS += [c for c in CAR_EXTRA.values() if c not in FIELDS]
 CAR_FIELDS.update(set(CAR_EXTRA.values()) - {"Projekt_ID"})
 MAPS = {
     'SAMOCHOD': ('cars', {'id':'ID','name':'Nazwa','plate':'Rejestracja','seats':'Miejsca','usage':'Uzytkowanie','owner':'Uzytkownik', **CAR_EXTRA}),
-    'REZERWACJA_AUTA': ('carReservations', {'id':'ID','car':'Samochod_ID','project':'Projekt_ID','start':'Od','end':'Do','passengers':'Liczba_osob','note':'Notatka'}),
+    'REZERWACJA_AUTA': ('carReservations', {'id':'ID','car':'Samochod_ID','project':'Projekt_ID','start':'Od','end':'Do','passengers':'Liczba_osob','note':'Notatka','driver':'Kierowca_ID'}),
     'OSOBA': ('people', {'id':'ID','name':'Nazwa','role':'Specjalizacja','group':'Grupa'}),
     'PROJEKT': ('projects', {'id':'ID','name':'Nazwa','shortName':'Skrot','topicNumber':'Nr_tematu','description':'Opis','color':'Kolor'}),
     'PRZYPISANIE': ('assignments', {'id':'ID','person':'Osoba_ID','project':'Projekt_ID','start':'Od','end':'Do','load':'Zaangazowanie_proc','note':'Notatka','stage':'Etap'})}
@@ -32,6 +33,7 @@ def unsafe(value):
     return value[1:] if len(value)>1 and value[0]=="'" and value[1] in DANGEROUS else value
 
 def format_version(plan):
+    if any(b.get('driver') for b in plan.get('carReservations', [])): return 'PLAN_ZESPOLU_4'
     if any(any(k in car for k in CAR_EXTRA) for car in plan.get('cars',[])):
         return 'PLAN_ZESPOLU_3'
     return 'PLAN_ZESPOLU_2' if 'cars' in plan or 'carReservations' in plan else 'PLAN_ZESPOLU_1'
@@ -54,7 +56,7 @@ def dumps(plan, extension):
             if typ=='REZERWACJA_AUTA':
                 car=next((c for c in plan.get('cars',[]) if c['id']==item['car']),{})
                 project=next((p for p in plan['projects'] if p['id']==item['project']),{})
-                row.update(Nazwa=car.get('name',''),Rejestracja=car.get('plate',''),Projekt=project.get('name',''))
+                row.update(Nazwa=car.get('name',''),Rejestracja=car.get('plate',''),Projekt=project.get('name',''),Kierowca=next((p['name'] for p in plan['people'] if p['id']==item.get('driver')),'Nieznany'))
             write(row)
     write({'Typ':'USTAWIENIE','Ustawienie':'demo','Wartosc':str(bool(plan.get('demo',False))).lower()})
     for key,value in plan.get('calendarDisplay',{}).items():
@@ -83,9 +85,9 @@ def loads(text, extension):
         if not any(row.values()): continue
         typ=row['Typ']
         if typ=='FORMAT':
-            if found or row['Wartosc'] not in ('PLAN_ZESPOLU_1','PLAN_ZESPOLU_2','PLAN_ZESPOLU_3'): raise ValueError('Nieobsługiwana wersja pliku.')
+            if found or row['Wartosc'] not in ('PLAN_ZESPOLU_1','PLAN_ZESPOLU_2','PLAN_ZESPOLU_3','PLAN_ZESPOLU_4'): raise ValueError('Nieobsługiwana wersja pliku.')
             found=True
-            if row['Wartosc'] in ('PLAN_ZESPOLU_2','PLAN_ZESPOLU_3'):
+            if row['Wartosc'] in ('PLAN_ZESPOLU_2','PLAN_ZESPOLU_3','PLAN_ZESPOLU_4'):
                 plan.setdefault('cars',[]);plan.setdefault('carReservations',[])
         elif typ in MAPS:
             key,mapping=MAPS[typ];item={prop:row.get(col,'') for prop,col in mapping.items()}
@@ -97,7 +99,9 @@ def loads(text, extension):
                 for prop in CAR_EXTRA:
                     if item[prop]=='': item.pop(prop)
                 if 'odometer' in item: item['odometer']=int(item['odometer'])
-            if typ=='REZERWACJA_AUTA': item['passengers']=int(item['passengers'])
+            if typ=='REZERWACJA_AUTA':
+                item['passengers']=int(item['passengers'])
+                if not item.get('driver'): item.pop('driver',None)
             plan.setdefault(key,[]).append(item)
         elif typ=='USTAWIENIE':
             key,value=row['Ustawienie'],row['Wartosc']

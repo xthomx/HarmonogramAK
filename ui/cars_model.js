@@ -18,6 +18,7 @@ function validateFleet(plan){
  const byCar=new Map();
  for(const b of bookings){
   const car=cars.find(c=>c.id===b.car);
+  if('driver' in b&&(typeof b.driver!=='string'||b.driver&&!(plan.people||[]).some(p=>p.id===b.driver)))throw Error('Kierowca rezerwacji musi wskazywać istniejącą osobę.');
   if(!car||!plan.projects?.some(p=>p.id===b.project))throw Error('Wybierz istniejący samochód i projekt.');
   if(!validDate(b.start)||!validDate(b.end)||b.start>b.end)throw Error('Sprawdź daty rezerwacji.');
   if(!Number.isInteger(b.passengers)||b.passengers<1||b.passengers>car.seats)throw Error('Liczba osób przekracza liczbę miejsc w samochodzie lub jest nieprawidłowa.');
@@ -55,3 +56,13 @@ function vignetteWarningSegments(car,start,end){
  return points.map((date,i)=>({start:date,end:i+1<points.length?new Date(Date.parse(points[i+1]+'T00:00:00Z')-86400000).toISOString().slice(0,10):end,countries:expiries.filter(x=>x.start<=date).map(x=>x.country)})).filter(x=>x.countries.length);
 }
 if(typeof module!=='undefined'&&module.exports)module.exports.vignetteWarningSegments=vignetteWarningSegments;
+
+function eligibleCarDrivers(plan,booking){
+ const ids=new Set((plan.assignments||[]).filter(a=>a.project===booking.project&&a.start<=booking.end&&a.end>=booking.start).map(a=>a.person));
+ return (plan.people||[]).filter(p=>ids.has(p.id));
+}
+function normalizeBookingDrivers(plan){
+ for(const b of plan.carReservations||[])if(b.driver&&!eligibleCarDrivers(plan,b).some(p=>p.id===b.driver))delete b.driver;
+ return plan;
+}
+if(typeof module!=='undefined'&&module.exports)Object.assign(module.exports,{eligibleCarDrivers,normalizeBookingDrivers});

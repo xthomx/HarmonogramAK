@@ -4,7 +4,7 @@ const carColumns=[['Nr rej.','plate'],['Marka i model','name'],['Kierowca','driv
 function carColumnValue(car,key){if(key.startsWith('vignette'))return car[key]||'Brak';if(key==='odometer')return car.odometer===undefined?'':car.odometer.toLocaleString('pl-PL')+' km';return car[key]??''}
 const carsList=()=>data.cars||[],carBookings=()=>data.carReservations||[];
 const carsBounds=()=>bounds(carsCursor,$('#cars-scale').value);
-function fleetChange(key,items){const next={...data,[key]:items};validateFleet(next);data=next;save()}
+function fleetChange(key,items){const next=normalizeBookingDrivers({...data,[key]:items});validateFleet(next);data=next;save()}
 function carTooltip(car){return carColumns.map(([label,key])=>label+': '+(carColumnValue(car,key)||'—')).join('\n')}
 function carCaption(car){return car.plate+' · '+car.name}
 function renderCars(){
@@ -40,7 +40,7 @@ function renderCars(){
    const warnings=vignetteWarningSegments(car,visibleStart,visibleEnd);
    const warningTitle=warnings.map(w=>'⚠ Winieta '+w.countries.join(', ')+' nieważna: '+w.start+' – '+w.end).join('\n');
    const overlays=warnings.map(w=>{const part=reportSpan(w.start,w.end,visibleStart,visibleEnd);return '<span class="vignette-warning" style="left:'+part.left+'%;width:'+part.width+'%" title="'+esc('⚠ Nieważna winieta: '+w.countries.join(', ')+' · '+w.start+' – '+w.end)+'">⚠ '+w.countries.join(', ')+'</span>'}).join('');
-   return '<button class="bar" data-booking="'+esc(b.id)+'" style="left:'+span.left+'%;width:'+span.width+'%;top:4px;--project-color:'+project.color+';color:'+project.color+';background-color:'+project.color+'22" title="'+esc(projectDetails(project)+' · '+b.start+' – '+b.end+(b.note?' · '+b.note:'')+(warningTitle?'\n'+warningTitle:''))+'">'+(b.start>=start?'<span class="resize-handle start" data-car-resize="start"></span>':'')+'<span class="bar-text">'+esc(projectLabel(project))+'</span>'+overlays+(b.end<=end?'<span class="resize-handle end" data-car-resize="end"></span>':'')+'</button>';
+   return '<button class="bar" data-booking="'+esc(b.id)+'" style="left:'+span.left+'%;width:'+span.width+'%;top:4px;--project-color:'+project.color+';color:'+project.color+';background-color:'+project.color+'22" title="'+esc(projectDetails(project)+' · '+b.start+' – '+b.end+' · Kierowca: '+carDriverName(b)+(b.note?' · '+b.note:'')+(warningTitle?'\n'+warningTitle:''))+'">'+(b.start>=start?'<span class="resize-handle start" data-car-resize="start"></span>':'')+'<span class="bar-text">'+esc(projectLabel(project))+'</span>'+overlays+(b.end<=end?'<span class="resize-handle end" data-car-resize="end"></span>':'')+'</button>';
   }).join('');
   html+='<div class="row" data-car-row="'+esc(car.id)+'"><div class="label" title="'+esc(carTooltip(car))+'"><div class="car-calendar-label"><span class="person-name">'+esc(car.plate)+'</span><small class="car-model">'+esc(car.name)+'</small></div></div><div class="track" style="height:30px">'+grid+(today>=start&&today<=end?'<div class="today-line" style="left:'+(((dt(today)-dt(start))/DAY+.5)/days.length*100)+'%"></div>':'')+bars+'</div></div>';
 
@@ -62,16 +62,26 @@ function openCar(id){
  });
 
 }
+function carDriverName(booking){return data.people.find(p=>p.id===booking.driver)?.name||'Nieznany'}
 function openCarReservation(id,preset={}){
  if(!carsList().length){toast('Najpierw dodaj samochód w zakładce Konfiguracja samochodów.');carsTab='fleet';renderCars();return}
  if(!data.projects.length){toast('Najpierw dodaj projekt w zakładce Projekty.');return}
  const b={...preset,...carBookings().find(x=>x.id===id)};
- carDialog(id?'Edytuj rezerwację':'Nowa rezerwacja samochodu','<label>Samochód<select name="car">'+carsList().map(c=>'<option value="'+esc(c.id)+'" '+(c.id===b.car?'selected':'')+'>'+esc(carCaption(c))+' · '+c.seats+' miejsc · '+esc(c.usage)+'</option>').join('')+'</select></label><label>Projekt — Skrót · Nr tematu · Nazwa<select name="project">'+data.projects.map(p=>'<option value="'+esc(p.id)+'" '+(p.id===b.project?'selected':'')+'>'+esc(projectIdentity(p))+'</option>').join('')+'</select></label><div class="dates">'+field('Od','start',b.start||today,'date','required')+field('Do (włącznie)','end',b.end||b.start||today,'date','required')+'</div>'+field('Liczba osób (łącznie z kierowcą)','passengers',b.passengers||1,'number','required min="1" max="100" step="1"')+field('Notatka','note',b.note||'','text','maxlength="250"')+'<small>Rezerwacja zajmuje całe auto. Daty końcowe są wliczone. Nakładające się rezerwacje są blokowane.</small>','carReservations',id);
+ carDialog(id?'Edytuj rezerwację':'Nowa rezerwacja samochodu','<label>Samochód<select name="car">'+carsList().map(c=>'<option value="'+esc(c.id)+'" '+(c.id===b.car?'selected':'')+'>'+esc(carCaption(c))+' · '+c.seats+' miejsc · '+esc(c.usage)+'</option>').join('')+'</select></label><label>Projekt — Skrót · Nr tematu · Nazwa<select name="project">'+data.projects.map(p=>'<option value="'+esc(p.id)+'" '+(p.id===b.project?'selected':'')+'>'+esc(projectIdentity(p))+'</option>').join('')+'</select></label><div class="dates">'+field('Od','start',b.start||today,'date','required')+field('Do (włącznie)','end',b.end||b.start||today,'date','required')+'</div>'+'<label>Kierowca<select name="driver"></select></label><small>Kierowca: Nieznany lub osoba z przypisaniem do projektu pokrywającym się z terminem rezerwacji.</small>'+field('Liczba osób (łącznie z kierowcą)','passengers',b.passengers||1,'number','required min="1" max="100" step="1"')+field('Notatka','note',b.note||'','text','maxlength="250"')+'<small>Rezerwacja zajmuje całe auto. Daty końcowe są wliczone. Nakładające się rezerwacje są blokowane.</small>','carReservations',id);
+ const driverInput=$('#car-fields [name=driver]');
+ function refreshDrivers(selected=driverInput.value){
+  const booking={project:$('#car-fields [name=project]').value,start:$('#car-fields [name=start]').value,end:$('#car-fields [name=end]').value};
+  const people=eligibleCarDrivers(data,booking);
+  driverInput.innerHTML='<option value="">Nieznany</option>'+people.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>').join('');
+  driverInput.value=people.some(p=>p.id===selected)?selected:'';
+ }
+ for(const name of ['project','start','end'])$('#car-fields [name='+name+']').addEventListener('change',()=>refreshDrivers());
+ refreshDrivers(b.driver||'');
  const carInput=$('#car-fields [name=car]'),seatsInput=$('#car-fields [name=passengers]');carInput.onchange=()=>{seatsInput.max=carsList().find(c=>c.id===carInput.value).seats};carInput.onchange();
 }
 $('#car-form').onsubmit=e=>{
  e.preventDefault();const values=Object.fromEntries(new FormData(e.target));
- if(carEditKind==='cars'){values.name=values.name.trim();values.plate=values.plate.trim().toUpperCase();values.owner=values.owner.trim();values.seats=Number(values.seats);for(const key of carExtraFields){if(typeof values[key]==='string')values[key]=values[key].trim();if(values[key]==='')delete values[key]}if(values.odometer!==undefined)values.odometer=Number(values.odometer)}else values.passengers=Number(values.passengers);
+ if(carEditKind==='cars'){values.name=values.name.trim();values.plate=values.plate.trim().toUpperCase();values.owner=values.owner.trim();values.seats=Number(values.seats);for(const key of carExtraFields){if(typeof values[key]==='string')values[key]=values[key].trim();if(values[key]==='')delete values[key]}if(values.odometer!==undefined)values.odometer=Number(values.odometer)}else{values.passengers=Number(values.passengers);if(!values.driver)delete values.driver;}
  values.id=carEdit||nextFleetId(carEditKind==='cars'?carsList():carBookings(),carEditKind==='cars'?'a':'ra');
  try{const items=carEditKind==='cars'?carsList():carBookings();fleetChange(carEditKind,carEdit?items.map(x=>x.id===carEdit?values:x):[...items,values]);$('#car-modal').close();toast('Zastosowano zmiany — kliknij Zapisz, aby zapisać plik.')}catch(error){$('#car-error').textContent=error.message}
 };

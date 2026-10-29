@@ -41,3 +41,16 @@ test('vignette expiry begins next day and splits countries on their exact dates'
  assert.deepEqual(vignetteWarningSegments({vignetteRO:'2024-02-28'},'2024-02-29','2024-03-01'),[{start:'2024-02-29',end:'2024-03-01',countries:['RO']}]);
  assert.deepEqual(vignetteWarningSegments({vignetteRO:'2025-12-31'},'2026-02-01','2026-02-02'),[{start:'2026-02-01',end:'2026-02-02',countries:['RO']}]);
 });
+
+const {eligibleCarDrivers,normalizeBookingDrivers}=require('../ui/cars_model.js');
+test('drivers are people assigned to project in an overlapping date range',()=>{
+ const p=plan([booking({driver:'p1'})]);
+ p.people=[{id:'p1',name:'Jan'},{id:'p2',name:'Anna'}];
+ p.assignments=[{person:'p1',project:'p1',start:'2026-11-05',end:'2026-11-10'},
+ {person:'p2',project:'other',start:'2026-11-01',end:'2026-11-05'}];
+ assert.deepEqual(eligibleCarDrivers(p,p.carReservations[0]).map(p=>p.id),['p1']);
+ normalizeBookingDrivers(p);assert.equal(p.carReservations[0].driver,'p1');
+ p.carReservations[0].end='2026-11-04';normalizeBookingDrivers(p);
+ assert.equal(p.carReservations[0].driver,undefined);
+ p.carReservations[0].driver='missing';assert.equal(validFleet(p),false);
+});

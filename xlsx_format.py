@@ -12,7 +12,7 @@ SHEETS = {
     'Projekty': ('PROJEKT', ['ID', 'Nazwa', 'Skrot', 'Nr_tematu', 'Opis', 'Kolor']),
     'Przypisania': ('PRZYPISANIE', ['ID', 'Osoba_ID', 'Projekt_ID', 'Osoba', 'Specjalizacja', 'Grupa', 'Projekt', 'Nr_tematu', 'Od', 'Do', 'Zaangazowanie_proc', 'Notatka', 'Etap']),
     'Samochody': ('SAMOCHOD', ['ID', 'Nazwa', 'Rejestracja', 'Miejsca', 'Uzytkowanie', 'Uzytkownik'] + list(table.CAR_EXTRA.values())),
-    'Rezerwacje_aut': ('REZERWACJA_AUTA', ['ID', 'Samochod_ID', 'Nazwa', 'Rejestracja', 'Projekt_ID', 'Projekt', 'Od', 'Do', 'Liczba_osob', 'Notatka']),
+    'Rezerwacje_aut': ('REZERWACJA_AUTA', ['ID', 'Samochod_ID', 'Nazwa', 'Rejestracja', 'Projekt_ID', 'Projekt', 'Od', 'Do', 'Liczba_osob', 'Notatka', 'Kierowca_ID', 'Kierowca']),
     'Ustawienia': ('USTAWIENIE', ['Ustawienie', 'Wartosc']),
 }
 
@@ -78,6 +78,7 @@ def loads(raw):
             names = [cell.value for cell in header]
             expected = set(columns)
             allowed = [expected, expected - {'Etap'}] if kind == 'PRZYPISANIE' else [expected]
+            if kind == 'REZERWACJA_AUTA': allowed.append(expected - {'Kierowca_ID','Kierowca'})
             if kind == 'SAMOCHOD': allowed.append(expected - set(table.CAR_EXTRA.values()))
             if len(names) != len(set(names)) or set(names) not in allowed:
                 raise ValueError('Nieprawidłowe nagłówki w arkuszu: ' + title)

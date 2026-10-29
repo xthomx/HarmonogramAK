@@ -43,6 +43,8 @@ def validate(plan):
 
     by_car = {}
     for booking in reservations:
+        if 'driver' in booking and (not isinstance(booking['driver'], str) or booking['driver'] and not any(p['id'] == booking['driver'] for p in plan.get('people', []))):
+            raise ValueError('Kierowca rezerwacji musi wskazywać istniejącą osobę.')
         car = by_id.get(booking.get('car'))
         if car is None or booking.get('project') not in projects:
             raise ValueError('Rezerwacja wskazuje nieistniejący samochód lub projekt.')

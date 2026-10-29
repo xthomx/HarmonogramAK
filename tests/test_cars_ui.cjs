@@ -44,15 +44,21 @@ const path=require('node:path');
   await page.evaluate(()=>{
    data.projects=[{id:'p1',name:'Linia A',shortName:'LA',topicNumber:'001',description:'Projekt A',color:'#347c68'}];
    data.cars.push({id:'c2',name:'Drugie auto',plate:'SK 67890',seats:2,usage:'Indywidualne',owner:'Jan'});
+   data.people=[{id:'driver1',name:'Adam Kierowca',role:''},{id:'driver2',name:'Poza projektem',role:''}];
+   data.assignments=[{id:'driver-task',person:'driver1',project:'p1',start:'2026-11-01',end:'2026-11-30',load:100,note:''}];
    carsCursor=dt('2026-11-01');carsTab='calendar';renderCars();
   });
   await page.click('#add');
   await page.fill('#car-fields [name=start]','2026-11-10');
   await page.fill('#car-fields [name=end]','2026-11-15');
   await page.fill('#car-fields [name=passengers]','4');
+  assert.equal(await page.locator('#car-fields [name=driver]').inputValue(),'');
+  assert.equal(await page.locator('#car-fields [name=driver] option').count(),2);
+  await page.selectOption('#car-fields [name=driver]','driver1');
   await page.click('#car-form button[type=submit]');
   assert.equal(await page.evaluate(()=>data.carReservations.length),1);
   assert.equal(await page.evaluate(()=>data.carReservations[0].id),'ra1');
+  assert.equal(await page.evaluate(()=>data.carReservations[0].driver),'driver1');
   const booking=page.locator('#cars-chart [data-booking]').first();
   assert.match(await booking.innerText(),/⚠ RO/);
   assert.equal(await booking.locator('.vignette-warning').evaluate(el=>el.style.left),'50%');
@@ -69,6 +75,12 @@ const path=require('node:path');
   // Click opens edit, without creating a second booking.
   await booking.click();
   assert.equal(await page.locator('#car-fields [name=start]').inputValue(),'2026-11-10');
+  assert.equal(await page.locator('#car-fields [name=driver]').inputValue(),'driver1');
+  await page.fill('#car-fields [name=end]','2026-12-15');
+  await page.fill('#car-fields [name=start]','2026-12-10');
+  await page.locator('#car-fields [name=start]').dispatchEvent('change');
+  assert.equal(await page.locator('#car-fields [name=driver]').inputValue(),'');
+  assert.equal(await page.locator('#car-fields [name=driver] option').count(),1);
   await page.click('#car-cancel');
   // A second reservation on the same inclusive endpoint must be refused.
   await page.click('#add');

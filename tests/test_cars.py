@@ -81,3 +81,19 @@ class CarsTests(unittest.TestCase):
         for changes in ({'odometer':-1},{'odometer':1.5},{'vignetteSK':'2027-02-29'},{'project':'missing'}):
             p=copy.deepcopy(self.plan);p['cars'][0].update(changes)
             with self.subTest(changes=changes),self.assertRaises(ValueError):fleet.validate(p)
+
+    def test_booking_driver_roundtrip_and_legacy_columns(self):
+        self.plan['carReservations'][0]['driver']='p1'
+        for ext in ('.csv','.txt'):
+            self.assertEqual(plan_format.loads(plan_format.dumps(self.plan,ext),ext),self.plan)
+        raw=xlsx_format.dumps(self.plan)
+        self.assertEqual(xlsx_format.loads(raw),self.plan)
+        book=load_workbook(io.BytesIO(raw))
+        self.assertEqual(book['Rezerwacje_aut']['K2'].value,'p1')
+        self.assertEqual(book['Rezerwacje_aut']['L2'].value,self.plan['people'][0]['name'])
+        book['Rezerwacje_aut'].delete_cols(11,2)
+        out=io.BytesIO();book.save(out);book.close()
+        del self.plan['carReservations'][0]['driver']
+        self.assertEqual(xlsx_format.loads(out.getvalue()),self.plan)
+        self.plan['carReservations'][0]['driver']='missing'
+        with self.assertRaises(ValueError): fleet.validate(self.plan)
