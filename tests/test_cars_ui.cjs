@@ -12,8 +12,8 @@ const path=require('node:path');
   await page.click('[data-view="cars"]');
   await page.evaluate(()=>{data.projects=[{id:'p1',name:'Linia A',shortName:'LA',topicNumber:'001',description:'Projekt A',color:'#347c68'}]});
   await page.click('#cars-new-car');
-  await page.selectOption('#car-fields [name=project]','p1');
-  for(const [key,value] of Object.entries({driver:'Jan Kowalski',route:'Bratysława',odometer:'123456',vignetteRO:'2026-11-12',vignetteSK:'2027-02-03',vignetteHU:'2027-03-04',vignetteCZ:'2027-04-05',vignetteAT:'2027-05-06',de:'Euro 6',inspection:'2027-10-12',tires:'Zimowe',kp:'O2',notes:'Auto sekcyjne'})){
+  assert.equal(await page.locator('#car-fields [name=project],#car-fields [name=route]').count(),0);
+  for(const [key,value] of Object.entries({driver:'Jan Kowalski',odometer:'123456',vignetteRO:'2026-11-12',vignetteSK:'2027-02-03',vignetteHU:'2027-03-04',vignetteCZ:'2027-04-05',vignetteAT:'2027-05-06',de:'Euro 6',inspection:'2027-10-12',tires:'Zimowe',kp:'O2',notes:'Auto sekcyjne'})){
    if(key.startsWith('vignette'))await page.selectOption('[data-vignette-mode='+key.slice(8)+']','date');
    await page.fill('#car-fields [name='+key+']',value);
   }
@@ -50,7 +50,13 @@ const path=require('node:path');
   assert.match(await booking.innerText(),/⚠ RO/);
   assert.equal(await booking.locator('.vignette-warning').evaluate(el=>el.style.left),'50%');
   assert.equal(await booking.locator('.vignette-warning').evaluate(el=>el.style.width),'50%');
-  assert.equal(await page.locator('[data-car-row="a1"] .label').innerText(),'SK 12345');
+  assert.equal(await page.locator('[data-car-row="a1"] .person-name').innerText(),'SK 12345');
+  assert.equal(await page.locator('[data-car-row="a1"] .car-model').innerText(),'Skoda Octavia');
+  const tip=await page.locator('[data-car-row="a1"] .label').getAttribute('title');
+  assert.match(tip,/Kierowca: Jan Kowalski/);
+  assert.match(tip,/Winieta SK: Brak/);
+  assert.match(tip,/Uwagi: Auto sekcyjne/);
+  assert.doesNotMatch(tip,/Projekt:|Gdzie jeździ:/);
   assert.ok((await page.locator('[data-car-row="a1"]').boundingBox()).height<=32);
 
   // Click opens edit, without creating a second booking.
@@ -84,7 +90,7 @@ const path=require('node:path');
   await page.click('#catalog [data-item="p1"]');
   page.once('dialog',dialog=>dialog.accept());await page.click('#delete');
   assert.equal(await page.evaluate(()=>data.carReservations.length),0,'Deleting a project removes linked car reservations');
-  assert.equal(await page.evaluate(()=>data.cars[0].project),'');
+
   assert.deepEqual(errors,[]);
   console.log('Cars UI: create/configure, reserve/edit, conflicts, capacity, resize, year view, theme, project deletion PASS');
  }finally{await browser.close()}

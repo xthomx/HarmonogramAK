@@ -292,7 +292,7 @@ section#cars{background:#fff;border:1px solid #dfe5ea;border-radius:10px;min-wid
 /* Expanded vehicle register: compact rows and horizontally scrollable details. */
 #cars-list{max-height:65vh;overflow:auto}
 #cars-list .catalog-table{width:max-content;min-width:100%}
-#cars-list .car-columns{grid-template-columns:110px 180px 200px 150px 180px 120px repeat(5,115px) 140px 115px 180px 190px 260px 70px 120px 160px 75px}
+#cars-list .car-columns{grid-template-columns:110px 180px 150px 120px repeat(5,115px) 140px 115px 180px 190px 260px 70px 120px 160px 75px}
 #cars-list .catalog-heading{position:sticky;top:0;z-index:4}
 #cars-list .car-columns>:nth-child(1){position:sticky;left:0;z-index:2;background:var(--car-cell-bg,#fff)}
 #cars-list .car-columns>:nth-child(2){position:sticky;left:110px;z-index:2;background:var(--car-cell-bg,#fff);box-shadow:1px 0 #dce3e9}
@@ -319,3 +319,8 @@ section#cars{background:#fff;border:1px solid #dfe5ea;border-radius:10px;min-wid
 [data-theme="dark"] #cars-chart .vignette-warning{background:repeating-linear-gradient(135deg,#654421 0px,#654421 5px,#79522a 5px,#79522a 9px);color:#ffe1a8}
 #car-fields [data-vignette-mode]{margin-bottom:4px}
 #car-fields input[hidden]{display:none}
+
+#cars-chart .car-calendar-label{display:flex;align-items:baseline;gap:6px;min-width:0;width:100%}
+#cars-chart .car-calendar-label .person-name{flex-shrink:0;white-space:nowrap}
+#cars-chart .car-model{font-size:10px;font-weight:400;color:#687888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+[data-theme="dark"] #cars-chart .car-model{color:#a4b3c4}
