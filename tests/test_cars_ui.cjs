@@ -12,7 +12,6 @@ const path=require('node:path');
   await page.click('[data-view="cars"]');
   await page.evaluate(()=>{data.projects=[{id:'p1',name:'Linia A',shortName:'LA',topicNumber:'001',description:'Projekt A',color:'#347c68'}]});
   await page.click('#cars-new-car');
-  assert.equal(await page.locator('#car-fields input[readonly]').inputValue(),'a1');
   await page.selectOption('#car-fields [name=project]','p1');
   for(const [key,value] of Object.entries({driver:'Jan Kowalski',route:'Bratysława',odometer:'123456',vignetteRO:'2027-01-02',vignetteSK:'2027-02-03',vignetteHU:'2027-03-04',vignetteCZ:'2027-04-05',vignetteAT:'2027-05-06',de:'Euro 6',inspection:'2027-10-12',tires:'Zimowe',kp:'O2',notes:'Auto sekcyjne'})){
    await page.fill('#car-fields [name='+key+']',value);

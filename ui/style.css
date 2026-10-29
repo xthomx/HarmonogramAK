@@ -292,11 +292,10 @@ section#cars{background:#fff;border:1px solid #dfe5ea;border-radius:10px;min-wid
 /* Expanded vehicle register: compact rows and horizontally scrollable details. */
 #cars-list{max-height:65vh;overflow:auto}
 #cars-list .catalog-table{width:max-content;min-width:100%}
-#cars-list .car-columns{grid-template-columns:60px 110px 180px 200px 150px 180px 120px repeat(5,115px) 140px 115px 180px 190px 260px 70px 120px 160px 75px}
+#cars-list .car-columns{grid-template-columns:110px 180px 200px 150px 180px 120px repeat(5,115px) 140px 115px 180px 190px 260px 70px 120px 160px 75px}
 #cars-list .catalog-heading{position:sticky;top:0;z-index:4}
 #cars-list .car-columns>:nth-child(1){position:sticky;left:0;z-index:2;background:var(--car-cell-bg,#fff)}
-#cars-list .car-columns>:nth-child(2){position:sticky;left:60px;z-index:2;background:var(--car-cell-bg,#fff)}
-#cars-list .car-columns>:nth-child(3){position:sticky;left:170px;z-index:2;background:var(--car-cell-bg,#fff);box-shadow:1px 0 #dce3e9}
+#cars-list .car-columns>:nth-child(2){position:sticky;left:110px;z-index:2;background:var(--car-cell-bg,#fff);box-shadow:1px 0 #dce3e9}
 #cars-list .catalog-heading{--car-cell-bg:#edf4f0}
 #cars-list .catalog-row:nth-child(odd){--car-cell-bg:#f8faf9}
 #car-modal.car-details-modal{width:min(960px,95vw);max-height:90vh;overflow:auto}
