@@ -45,3 +45,13 @@ function normalizeFleetIds(plan){
  return plan;
 }
 if(typeof module!=='undefined'&&module.exports)module.exports={validateFleet,validFleet,nextFleetId,normalizeFleetIds};
+
+// Expiry is inclusive: the warning starts on the following calendar day.
+function vignetteWarningSegments(car,start,end){
+ const countries=['RO','SK','HU','CZ','AT'];
+ const nextDay=s=>new Date(Date.parse(s+'T00:00:00Z')+86400000).toISOString().slice(0,10);
+ const expiries=countries.filter(c=>car['vignette'+c]).map(country=>({country,start:nextDay(car['vignette'+country])})).filter(x=>x.start<=end);
+ const points=[...new Set([start,...expiries.map(x=>x.start).filter(d=>d>start)])].sort();
+ return points.map((date,i)=>({start:date,end:i+1<points.length?new Date(Date.parse(points[i+1]+'T00:00:00Z')-86400000).toISOString().slice(0,10):end,countries:expiries.filter(x=>x.start<=date).map(x=>x.country)})).filter(x=>x.countries.length);
+}
+if(typeof module!=='undefined'&&module.exports)module.exports.vignetteWarningSegments=vignetteWarningSegments;

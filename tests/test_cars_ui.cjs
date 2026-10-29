@@ -13,7 +13,8 @@ const path=require('node:path');
   await page.evaluate(()=>{data.projects=[{id:'p1',name:'Linia A',shortName:'LA',topicNumber:'001',description:'Projekt A',color:'#347c68'}]});
   await page.click('#cars-new-car');
   await page.selectOption('#car-fields [name=project]','p1');
-  for(const [key,value] of Object.entries({driver:'Jan Kowalski',route:'Bratysława',odometer:'123456',vignetteRO:'2027-01-02',vignetteSK:'2027-02-03',vignetteHU:'2027-03-04',vignetteCZ:'2027-04-05',vignetteAT:'2027-05-06',de:'Euro 6',inspection:'2027-10-12',tires:'Zimowe',kp:'O2',notes:'Auto sekcyjne'})){
+  for(const [key,value] of Object.entries({driver:'Jan Kowalski',route:'Bratysława',odometer:'123456',vignetteRO:'2026-11-12',vignetteSK:'2027-02-03',vignetteHU:'2027-03-04',vignetteCZ:'2027-04-05',vignetteAT:'2027-05-06',de:'Euro 6',inspection:'2027-10-12',tires:'Zimowe',kp:'O2',notes:'Auto sekcyjne'})){
+   if(key.startsWith('vignette'))await page.selectOption('[data-vignette-mode='+key.slice(8)+']','date');
    await page.fill('#car-fields [name='+key+']',value);
   }
   await page.fill('#car-fields [name=name]','Skoda Octavia');
@@ -29,7 +30,10 @@ const path=require('node:path');
   await page.click('[data-car-edit="a1"]');
   assert.equal(await page.locator('#car-fields [name=inspection]').inputValue(),'2027-10-12');
   assert.equal(await page.locator('#car-fields [name=notes]').inputValue(),'Auto sekcyjne');
+  await page.selectOption('[data-vignette-mode=SK]','none');
+  assert.equal(await page.locator('[name=vignetteSK]').isVisible(),false);
   await page.click('#car-form button[type=submit]');
+  assert.equal(await page.evaluate(()=>data.cars[0].vignetteSK),undefined);
   await page.evaluate(()=>{
    data.projects=[{id:'p1',name:'Linia A',shortName:'LA',topicNumber:'001',description:'Projekt A',color:'#347c68'}];
    data.cars.push({id:'c2',name:'Drugie auto',plate:'SK 67890',seats:2,usage:'Indywidualne',owner:'Jan'});
@@ -43,7 +47,12 @@ const path=require('node:path');
   assert.equal(await page.evaluate(()=>data.carReservations.length),1);
   assert.equal(await page.evaluate(()=>data.carReservations[0].id),'ra1');
   const booking=page.locator('#cars-chart [data-booking]').first();
-  assert.match(await booking.innerText(),/4\/5/);
+  assert.match(await booking.innerText(),/⚠ RO/);
+  assert.equal(await booking.locator('.vignette-warning').evaluate(el=>el.style.left),'50%');
+  assert.equal(await booking.locator('.vignette-warning').evaluate(el=>el.style.width),'50%');
+  assert.equal(await page.locator('[data-car-row="a1"] .label').innerText(),'SK 12345');
+  assert.ok((await page.locator('[data-car-row="a1"]').boundingBox()).height<=32);
+
   // Click opens edit, without creating a second booking.
   await booking.click();
   assert.equal(await page.locator('#car-fields [name=start]').inputValue(),'2026-11-10');

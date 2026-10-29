@@ -309,3 +309,13 @@ section#cars{background:#fff;border:1px solid #dfe5ea;border-radius:10px;min-wid
 [data-theme="dark"] #cars-list .catalog-row:nth-child(odd){--car-cell-bg:#202d3d}
 [data-theme="dark"] .car-details-modal .modal-actions{background:#1b2735}
 @media(max-width:700px){#car-fields.car-details-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Compact vehicle calendar; identifiers and capacity stay in configuration. */
+#cars-chart [data-car-row]>.label{height:30px;min-height:30px;padding:2px 10px}
+#cars-chart [data-car-row]>.track{min-height:30px}
+#cars-chart .bar,#cars-chart .new-assignment-preview{height:22px}
+#cars-chart .vignette-warning{position:absolute;top:0;bottom:0;display:block;overflow:hidden;white-space:nowrap;text-align:left;padding-left:2px;background:repeating-linear-gradient(135deg,#ffe5bd 0px,#ffe5bd 5px,#ffd292 5px,#ffd292 9px);color:#7b3500;font-size:10px;line-height:20px;border-left:1px solid #b75c00;pointer-events:none}
+#cars-chart .resize-handle{z-index:4}
+[data-theme="dark"] #cars-chart .vignette-warning{background:repeating-linear-gradient(135deg,#654421 0px,#654421 5px,#79522a 5px,#79522a 9px);color:#ffe1a8}
+#car-fields [data-vignette-mode]{margin-bottom:4px}
+#car-fields input[hidden]{display:none}

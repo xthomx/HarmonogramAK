@@ -31,3 +31,13 @@ test('expanded fields validate dates, odometer and assigned project',()=>{
  const p=plan();Object.assign(p.cars[0],{project:'p1',driver:'Jan',route:'RO / SK',odometer:0,vignetteRO:'2028-02-29',inspection:'2027-10-12',de:'Naklejka',tires:'Zimowe',kp:'O2',notes:'Uwagi'});assert.equal(validateFleet(p),true);
  for(const changes of [{odometer:-1},{odometer:1.5},{vignetteRO:'2027-02-29'},{project:'missing'}]){const bad=structuredClone(p);Object.assign(bad.cars[0],changes);assert.equal(validFleet(bad),false)}
 });
+
+const {vignetteWarningSegments}=require('../ui/cars_model.js');
+test('vignette expiry begins next day and splits countries on their exact dates',()=>{
+ assert.deepEqual(vignetteWarningSegments({vignetteRO:'2026-11-12',vignetteSK:'2026-11-14'},'2026-11-10','2026-11-15'),[
+ {start:'2026-11-13',end:'2026-11-14',countries:['RO']},{start:'2026-11-15',end:'2026-11-15',countries:['RO','SK']}]);
+ assert.deepEqual(vignetteWarningSegments({vignetteRO:'2026-11-15'},'2026-11-10','2026-11-15'),[]);
+ assert.deepEqual(vignetteWarningSegments({},'2026-11-10','2026-11-15'),[]);
+ assert.deepEqual(vignetteWarningSegments({vignetteRO:'2024-02-28'},'2024-02-29','2024-03-01'),[{start:'2024-02-29',end:'2024-03-01',countries:['RO']}]);
+ assert.deepEqual(vignetteWarningSegments({vignetteRO:'2025-12-31'},'2026-02-01','2026-02-02'),[{start:'2026-02-01',end:'2026-02-02',countries:['RO']}]);
+});
