@@ -2,10 +2,14 @@
 import csv
 import io
 import json
+import fleet
 
 FIELDS = ['Typ', 'ID', 'Nazwa', 'Specjalizacja', 'Grupa', 'Skrot', 'Nr_tematu', 'Opis', 'Kolor',
-          'Osoba_ID', 'Projekt_ID', 'Osoba', 'Projekt', 'Od', 'Do', 'Zaangazowanie_proc', 'Notatka', 'Ustawienie', 'Wartosc', 'Etap']
+          'Osoba_ID', 'Projekt_ID', 'Osoba', 'Projekt', 'Od', 'Do', 'Zaangazowanie_proc', 'Notatka', 'Ustawienie', 'Wartosc', 'Etap', 'Samochod_ID', 'Rejestracja', 'Miejsca', 'Uzytkowanie', 'Uzytkownik', 'Liczba_osob']
+CAR_FIELDS = {'Samochod_ID', 'Rejestracja', 'Miejsca', 'Uzytkowanie', 'Uzytkownik', 'Liczba_osob'}
 MAPS = {
+    'SAMOCHOD': ('cars', {'id':'ID','name':'Nazwa','plate':'Rejestracja','seats':'Miejsca','usage':'Uzytkowanie','owner':'Uzytkownik'}),
+    'REZERWACJA_AUTA': ('carReservations', {'id':'ID','car':'Samochod_ID','project':'Projekt_ID','start':'Od','end':'Do','passengers':'Liczba_osob','note':'Notatka'}),
     'OSOBA': ('people', {'id':'ID','name':'Nazwa','role':'Specjalizacja','group':'Grupa'}),
     'PROJEKT': ('projects', {'id':'ID','name':'Nazwa','shortName':'Skrot','topicNumber':'Nr_tematu','description':'Opis','color':'Kolor'}),
     'PRZYPISANIE': ('assignments', {'id':'ID','person':'Osoba_ID','project':'Projekt_ID','start':'Od','end':'Do','load':'Zaangazowanie_proc','note':'Notatka','stage':'Etap'})}
@@ -25,19 +29,24 @@ def unsafe(value):
     return value[1:] if len(value)>1 and value[0]=="'" and value[1] in DANGEROUS else value
 
 def dumps(plan, extension):
+    fleet.validate(plan)
     out = io.StringIO(newline='')
     writer = csv.DictWriter(out, fieldnames=FIELDS, delimiter='\t' if extension=='.txt' else ';', lineterminator='\r\n')
     writer.writeheader()
     def write(row): writer.writerow({k:safe(v) for k,v in row.items()})
-    write({'Typ':'FORMAT','Wartosc':'PLAN_ZESPOLU_1'})
+    write({'Typ':'FORMAT','Wartosc':'PLAN_ZESPOLU_2' if 'cars' in plan or 'carReservations' in plan else 'PLAN_ZESPOLU_1'})
     for typ,(key,mapping) in MAPS.items():
-        for item in plan[key]:
+        for item in plan.get(key,[]):
             row={'Typ':typ, **{col:item.get(prop,'') for prop,col in mapping.items()}}
             if typ=='PRZYPISANIE':
                 row['Etap'] = stage(item.get('stage'))
                 person=next((p for p in plan['people'] if p['id']==item['person']),{})
                 project=next((p for p in plan['projects'] if p['id']==item['project']),{})
                 row.update(Osoba=person.get('name',''),Projekt=project.get('name',''),Specjalizacja=person.get('role',''),Grupa=person.get('group',''),Nr_tematu=project.get('topicNumber',''))
+            if typ=='REZERWACJA_AUTA':
+                car=next((c for c in plan.get('cars',[]) if c['id']==item['car']),{})
+                project=next((p for p in plan['projects'] if p['id']==item['project']),{})
+                row.update(Nazwa=car.get('name',''),Rejestracja=car.get('plate',''),Projekt=project.get('name',''))
             write(row)
     write({'Typ':'USTAWIENIE','Ustawienie':'demo','Wartosc':str(bool(plan.get('demo',False))).lower()})
     for key,value in plan.get('calendarDisplay',{}).items():
@@ -56,7 +65,7 @@ def loads(text, extension):
     header=text.splitlines()[0] if text else ''
     if extension=='.csv' and ';' not in header and ',' in header: delimiter=','
     reader=csv.DictReader(io.StringIO(text,newline=''),delimiter=delimiter,strict=True)
-    if not reader.fieldnames or (set(FIELDS)-{'Etap'})-set(reader.fieldnames) or len(set(reader.fieldnames))!=len(reader.fieldnames):
+    if not reader.fieldnames or (set(FIELDS)-{'Etap'}-CAR_FIELDS)-set(reader.fieldnames) or len(set(reader.fieldnames))!=len(reader.fieldnames):
         raise ValueError('Nieprawidłowe nagłówki tabeli planu.')
     plan={'people':[],'projects':[],'assignments':[],'demo':False,'calendarDisplay':{},'calendarFilters':{'project':[],'person':[],'group':''}}
     found=False
@@ -66,14 +75,18 @@ def loads(text, extension):
         if not any(row.values()): continue
         typ=row['Typ']
         if typ=='FORMAT':
-            if found or row['Wartosc']!='PLAN_ZESPOLU_1': raise ValueError('Nieobsługiwana wersja pliku.')
+            if found or row['Wartosc'] not in ('PLAN_ZESPOLU_1','PLAN_ZESPOLU_2'): raise ValueError('Nieobsługiwana wersja pliku.')
             found=True
+            if row['Wartosc']=='PLAN_ZESPOLU_2':
+                plan.setdefault('cars',[]);plan.setdefault('carReservations',[])
         elif typ in MAPS:
             key,mapping=MAPS[typ];item={prop:row.get(col,'') for prop,col in mapping.items()}
             if typ=='PRZYPISANIE':
                 item['load']=int(item['load'])
                 item['stage']=stage(item.get('stage'))
-            plan[key].append(item)
+            if typ=='SAMOCHOD': item['seats']=int(item['seats'])
+            if typ=='REZERWACJA_AUTA': item['passengers']=int(item['passengers'])
+            plan.setdefault(key,[]).append(item)
         elif typ=='USTAWIENIE':
             key,value=row['Ustawienie'],row['Wartosc']
             if key=='demo': plan['demo']=value=='true'
@@ -85,4 +98,6 @@ def loads(text, extension):
             elif key=='filter.group': plan['calendarFilters']['group']=value
         else: raise ValueError('Nieznany typ wiersza: '+typ)
     if not found: raise ValueError('Brak wiersza wersji formatu.')
+    fleet.validate(plan)
     return plan
+

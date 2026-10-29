@@ -11,6 +11,8 @@ SHEETS = {
     'Osoby': ('OSOBA', ['ID', 'Nazwa', 'Specjalizacja', 'Grupa']),
     'Projekty': ('PROJEKT', ['ID', 'Nazwa', 'Skrot', 'Nr_tematu', 'Opis', 'Kolor']),
     'Przypisania': ('PRZYPISANIE', ['ID', 'Osoba_ID', 'Projekt_ID', 'Osoba', 'Specjalizacja', 'Grupa', 'Projekt', 'Nr_tematu', 'Od', 'Do', 'Zaangazowanie_proc', 'Notatka', 'Etap']),
+    'Samochody': ('SAMOCHOD', ['ID', 'Nazwa', 'Rejestracja', 'Miejsca', 'Uzytkowanie', 'Uzytkownik']),
+    'Rezerwacje_aut': ('REZERWACJA_AUTA', ['ID', 'Samochod_ID', 'Nazwa', 'Rejestracja', 'Projekt_ID', 'Projekt', 'Od', 'Do', 'Liczba_osob', 'Notatka']),
     'Ustawienia': ('USTAWIENIE', ['Ustawienie', 'Wartosc']),
 }
 
@@ -25,7 +27,7 @@ def dumps(plan):
         sheet.append(columns)
         records = [r for r in rows if r['Typ'] == kind]
         if title == 'Ustawienia':
-            records.insert(0, {'Ustawienie': 'format', 'Wartosc': 'PLAN_ZESPOLU_1'})
+            records.insert(0, {'Ustawienie': 'format', 'Wartosc': 'PLAN_ZESPOLU_2' if 'cars' in plan or 'carReservations' in plan else 'PLAN_ZESPOLU_1'})
         for record in records:
             row_number = sheet.max_row + 1
             for col_number, column in enumerate(columns, 1):
@@ -34,7 +36,7 @@ def dumps(plan):
                 if column in ('Od', 'Do'):
                     cell.value = date.fromisoformat(value)
                     cell.number_format = 'yyyy-mm-dd'
-                elif column == 'Zaangazowanie_proc':
+                elif column in ('Zaangazowanie_proc','Miejsca','Liczba_osob'):
                     cell.value = int(value)
                 else:
                     cell.value = value
@@ -61,12 +63,13 @@ def loads(raw):
     except (BadZipFile, OSError, KeyError) as exc:
         raise ValueError('Nieprawidłowy plik Excel .xlsx.') from exc
     try:
-        if set(workbook.sheetnames) != set(SHEETS):
-            raise ValueError('Plik musi zawierać dokładnie arkusze: Osoby, Projekty, Przypisania, Ustawienia.')
+        if set(workbook.sheetnames) not in ({'Osoby','Projekty','Przypisania','Ustawienia'}, set(SHEETS)):
+            raise ValueError('Brak wymaganych arkuszy planu lub nieznany arkusz.')
         out = io.StringIO(newline='')
         writer = csv.DictWriter(out, fieldnames=table.FIELDS, delimiter=';')
         writer.writeheader()
         for title, (kind, columns) in SHEETS.items():
+            if title not in workbook.sheetnames: continue
             sheet = workbook[title]
             if (sheet.max_row or 0) > 10002 or (sheet.max_column or 0) > len(columns):
                 raise ValueError('Zbyt duży arkusz: ' + title)
@@ -95,6 +98,8 @@ def loads(raw):
                     row['Typ'] = 'FORMAT'
                 writer.writerow({k: table.safe(v) for k, v in row.items()})
         plan = table.loads(out.getvalue(), '.csv')
+        if 'cars' in plan and not {'Samochody','Rezerwacje_aut'} <= set(workbook.sheetnames):
+            raise ValueError('Brak arkuszy Samochody lub Rezerwacje_aut dla nowego formatu.')
         validate(plan)
         return plan
     finally:
@@ -102,6 +107,7 @@ def loads(raw):
 
 
 def validate(plan):
+    table.fleet.validate(plan)
     for key in ('people', 'projects', 'assignments'):
         ids = [item['id'] for item in plan[key]]
         if len(ids) > 10000 or any(not id.strip() for id in ids) or len(ids) != len(set(ids)):
@@ -122,3 +128,4 @@ def validate(plan):
             raise ValueError('Nieprawidłowy zakres dat przypisania.')
         if not 1 <= item['load'] <= 100:
             raise ValueError('Zaangażowanie musi być liczbą całkowitą od 1 do 100.')
+

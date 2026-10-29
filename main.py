@@ -8,6 +8,7 @@ import threading
 import uuid
 from plan_format import dumps, loads
 import xlsx_format
+import fleet
 from preferences import Preferences
 from app_version import APP_VERSION
 from updates import check_updates, RELEASES_URL
@@ -22,6 +23,7 @@ def parse_plan(text):
     data = json.loads(text)
     if not isinstance(data, dict) or any(not isinstance(data.get(k), list) for k in ('people', 'projects', 'assignments')):
         raise ValueError('Nieprawidlowy plik planu.')
+    fleet.validate(data)
     return data
 
 
@@ -188,7 +190,7 @@ def main():
     root = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent)) / 'ui'
     html = (root / 'index.html').read_text(encoding='utf-8')
     html = html.replace('<link rel="stylesheet" href="style.css">', '<style>' + (root / 'style.css').read_text(encoding='utf-8') + '</style>')
-    for script in ('report_model.js', 'app.js', 'workspace.js'):
+    for script in ('report_model.js', 'cars_model.js', 'app.js', 'workspace.js', 'cars.js'):
         html = html.replace('<script src="' + script + '"></script>', '<script>' + (root / script).read_text(encoding='utf-8') + '</script>')
 
     api = Api()

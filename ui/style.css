@@ -263,3 +263,28 @@ header>div:first-child{min-width:0}
 [data-theme="dark"] .report-result.availability-match{box-shadow:inset 0 0 0 1px #8fcca7}
 
 #assignment-menu button[hidden]{display:none}
+
+/* Vehicle calendar shares schedule rows, bars and date headings. */
+section#cars{background:#fff;border:1px solid #dfe5ea;border-radius:10px;min-width:0;overflow:hidden}
+.cars-tabs{display:flex;flex-wrap:wrap;gap:6px;padding:8px;border-bottom:1px solid #dfe5ea}
+.cars-tabs .active{background:#28785a;color:white;border-color:#28785a}
+#cars .toolbar{padding:8px;margin:0}
+#cars .chart-scroll{max-height:calc(100vh - 300px);overflow:auto;min-height:120px}
+#cars-chart{width:100%;min-width:0}
+#cars-chart .head{position:sticky;top:0;z-index:6;background:#fff}
+#cars-chart .month-head{position:sticky;top:0;z-index:7;background:#eef5f0;height:28px}
+#cars-chart:has(.month-head) .head{top:28px}
+#cars-chart .bar{padding-left:8px;padding-right:8px}
+#cars-chart .bar-text{pointer-events:none}
+#cars-chart .resize-handle{width:6px}
+.car-columns{grid-template-columns:minmax(110px,1.2fr) minmax(90px,1fr) 65px 110px minmax(100px,1fr) 70px}
+#cars-list{overflow:auto}
+#cars-list .catalog-table{min-width:660px}
+#car-fields{display:grid;gap:10px}
+#car-fields input,#car-fields select{width:100%}
+#car-error{color:#b13532}
+#cars-summary{font-size:11px}
+[data-theme="dark"] section#cars,[data-theme="dark"] #cars-chart .head{background:#1b2735;color:#e1e8f0;border-color:#39495b}
+[data-theme="dark"] #cars-chart .month-head{background:#253b40}
+[data-theme="dark"] .cars-tabs{border-color:#39495b}
+[data-theme="dark"] #car-error{color:#ffafa6}

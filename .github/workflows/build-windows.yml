@@ -70,7 +70,15 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Test availability report logic
         working-directory: ${{ steps.project.outputs.dir }}
-        run: node --test tests/test_reports.cjs
+        run: node --test tests/test_reports.cjs tests/test_cars.cjs
+      - name: Test vehicle calendar in Edge
+        working-directory: ${{ steps.project.outputs.dir }}
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+        run: |
+          npm install --no-save playwright
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/test_cars_ui.cjs
       - name: Build Windows application
         working-directory: ${{ steps.project.outputs.dir }}
         run: python -m PyInstaller --noconfirm --clean --onedir --windowed --name PlanZespolu --add-data "ui;ui" --collect-all webview main.py
