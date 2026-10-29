@@ -9,6 +9,13 @@ const path=require('node:path');
   const page=await browser.newPage({viewport:{width:1400,height:900}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
   await page.goto(pathToFileURL(path.resolve('ui/index.html')).href);
+  const reservedId='__reservation_without_project__';
+  assert.equal(await page.evaluate(()=>data.projects.filter(p=>isReservationProject(p.id)).length),1);
+  await page.click('[data-view="projects"]');
+  assert.match(await page.locator('#catalog').innerText(),/Rezerwacja bez projektu/);
+  assert.equal(await page.locator('#catalog [data-item="'+reservedId+'"]').count(),0);
+  await page.evaluate(()=>open('projects','__reservation_without_project__'));
+  assert.equal(await page.locator('#modal').evaluate(el=>el.open),false);
   await page.click('[data-view="cars"]');
   await page.evaluate(()=>{data.projects=[{id:'p1',name:'Linia A',shortName:'LA',topicNumber:'001',description:'Projekt A',color:'#347c68'}]});
   await page.click('#cars-new-car');
@@ -91,6 +98,19 @@ const path=require('node:path');
   page.once('dialog',dialog=>dialog.accept());await page.click('#delete');
   assert.equal(await page.evaluate(()=>data.carReservations.length),0,'Deleting a project removes linked car reservations');
 
+  await page.evaluate(()=>{
+   data.people=[{id:'person-test',name:'Jan',role:''}];
+   open('assignments',null,{project:'__reservation_without_project__'});
+  });
+  await page.click('#form button[type=submit]');
+  assert.equal(await page.evaluate(()=>data.assignments[0].project),reservedId);
+  await page.click('[data-view="cars"]');
+  await page.click('#add');
+  await page.selectOption('#car-fields [name=project]',reservedId);
+  await page.fill('#car-fields [name=start]','2026-12-01');
+  await page.fill('#car-fields [name=end]','2026-12-02');
+  await page.click('#car-form button[type=submit]');
+  assert.equal(await page.evaluate(()=>data.carReservations[0].project),reservedId);
   assert.deepEqual(errors,[]);
   console.log('Cars UI: create/configure, reserve/edit, conflicts, capacity, resize, year view, theme, project deletion PASS');
  }finally{await browser.close()}

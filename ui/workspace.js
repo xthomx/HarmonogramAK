@@ -49,7 +49,7 @@ async function restoreWorkspace(){
   if(file){
    const next=JSON.parse(file.text);if(!valid(next))throw Error('Nieprawidłowy ostatnio używany plik. Otwórz inny plik.');
    await api.accept_open(file.token);
-   data=normalizeFleetIds(next);fileName=file.name;filePath=file.path||file.name;
+   data=ensureReservationProject(normalizeFleetIds(next));fileName=file.name;filePath=file.path||file.name;
    $('#disk-format').value=file.format||'xlsx';savedSnapshot=JSON.stringify(data);
   }
   fileNotice='';render();
