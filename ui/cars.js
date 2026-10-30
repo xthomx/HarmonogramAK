@@ -24,7 +24,7 @@ function renderCars(){
  const chart=$('#cars-chart');chart.classList.toggle('weekly-view',weekly);chart.classList.toggle('long-view',weekly&&monthCount($('#cars-scale').value)>=6);
  const months=[];for(const day of days){if(months.at(-1)?.key===day.slice(0,7))months.at(-1).count++;else months.push({key:day.slice(0,7),date:day,count:1})}
  const weekend=d=>[0,6].includes(dt(d).getUTCDay());
- let html=(months.length>1?'<div class="row month-head"><div class="label">MIESIĄCE</div><div class="month-segments">'+months.map(m=>'<div style="flex:'+m.count+'" title="'+esc(monthTitle(m.date))+'">'+esc(weekly?dt(m.date).toLocaleDateString('pl-PL',{month:'short',timeZone:'UTC'}):monthTitle(m.date))+'</div>').join('')+'</div></div>':'')+'<div class="row head"><div class="label">NR REJESTRACYJNY</div><div class="days">'+(weekly?weeks.map(w=>'<div class="week-column '+(today>=w.start&&today<=w.end?'current-week':'')+'" style="flex:'+w.count+'" title="Tydzień '+w.number+': '+w.start+' – '+w.end+'"><strong>'+w.number+'</strong></div>'):days.map(d=>'<div class="day '+(weekend(d)?'weekend ':'')+(d===today?'today':'')+'">'+['N','P','W','Ś','C','P','S'][dt(d).getUTCDay()]+'<b>'+Number(d.slice(8))+'</b></div>')).join('')+'</div></div>';
+ let html=(months.length>1?'<div class="row month-head"><div class="label">MIESIĄCE</div><div class="month-segments">'+months.map(m=>'<div style="flex:'+m.count+'" title="'+esc(monthTitle(m.date))+'">'+esc(weekly?dt(m.date).toLocaleDateString('pl-PL',{month:'short',timeZone:'UTC'}):monthTitle(m.date))+'</div>').join('')+'</div></div>':'')+'<div class="row head"><div class="label">NR REJESTRACYJNY</div><div class="days" title="Przeciągnij w lewo lub w prawo, aby przesunąć daty. Esc — anuluj.">'+(weekly?weeks.map(w=>'<div class="week-column '+(today>=w.start&&today<=w.end?'current-week':'')+'" style="flex:'+w.count+'" title="Tydzień '+w.number+': '+w.start+' – '+w.end+'"><strong>'+w.number+'</strong></div>'):days.map(d=>'<div class="day '+(weekend(d)?'weekend ':'')+(d===today?'today':'')+'">'+['N','P','W','Ś','C','P','S'][dt(d).getUTCDay()]+'<b>'+Number(d.slice(8))+'</b></div>')).join('')+'</div></div>';
  let count=0,booked=0;
  for(const car of carsList()){
   if(usage&&car.usage!==usage)continue;
@@ -138,3 +138,59 @@ carsChart.addEventListener('wheel',e=>{
  const next=zoomScale($('#cars-scale').value,carsWheel>0?1:-1);carsWheel=0;
  const track=e.target.closest('.track')||carsChart.querySelector('.track');if(track)carsCursor=dt(carDayAt(track,e.clientX));$('#cars-scale').value=next;$('#cars-unit').value=monthCount(next)>=6?'weeks':'days';carsZoomAt=Date.now();renderCars();
 },{passive:false});
+
+// The header moves the visible window only; assignment dates remain untouched.
+function enableCalendarPan(chart,options){
+ let pan=null,frame=null,pendingX=0;
+ const paint=x=>{
+  if(!pan)return;
+  const dx=x-pan.x;
+  if(!pan.moved&&Math.abs(dx)<4)return;
+  pan.moved=true;
+  const offset=-Math.round(dx/pan.width*pan.days/pan.step)*pan.step;
+  if(offset===pan.offset)return;
+  const start=plus(pan.start,offset),end=plus(pan.end,offset);
+  if(start<'1900-01-01'||end>'9999-12-31')return;
+  pan.offset=offset;
+  const date=dt(start);date.panWindow={scale:pan.scale,end};
+  options.set(date);options.render();
+ };
+ const finish=cancel=>{
+  if(!pan)return;
+  if(frame!==null){cancelAnimationFrame(frame);frame=null}
+  const previous=pan;pan=null;chart.classList.remove('calendar-panning');
+  if(cancel){options.set(previous.cursor);options.restore?.(previous.extra);options.renderCancel()}
+  if(chart.hasPointerCapture(previous.pointer))chart.releasePointerCapture(previous.pointer);
+ };
+ chart.addEventListener('pointerdown',e=>{
+  const header=e.target.closest('.head .days');
+  if(e.button!==0||!header||pan)return;
+  e.preventDefault();
+  const [start,end]=options.bounds();
+  pan={pointer:e.pointerId,x:e.clientX,width:header.getBoundingClientRect().width,start,end,days:(dt(end)-dt(start))/DAY+1,step:options.unit()==='weeks'?7:1,scale:options.scale(),cursor:options.get(),offset:0,moved:false,extra:options.snapshot?.()};
+  chart.classList.add('calendar-panning');chart.setPointerCapture(e.pointerId);
+ });
+ chart.addEventListener('pointermove',e=>{
+  if(pan?.pointer!==e.pointerId)return;
+  pendingX=e.clientX;
+  if(frame===null)frame=requestAnimationFrame(()=>{frame=null;paint(pendingX)});
+ });
+ chart.addEventListener('pointerup',e=>{if(pan?.pointer===e.pointerId){paint(e.clientX);finish(false)}});
+ chart.addEventListener('pointercancel',()=>finish(true));
+ chart.addEventListener('lostpointercapture',()=>finish(true));
+ window.addEventListener('blur',()=>finish(true));
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&pan){e.preventDefault();finish(true)}});
+ chart.addEventListener('wheel',e=>{if(pan)e.stopImmediatePropagation()},true);
+}
+enableCalendarPan($('#chart'),{
+ get:()=>cursor,set:value=>cursor=value,bounds:()=>bounds(),scale:()=>$('#scale').value,unit:()=>displaySettings().unit,render:render,renderCancel:render
+});
+enableCalendarPan(carsChart,{
+ get:()=>carsCursor,set:value=>carsCursor=value,bounds:carsBounds,scale:()=>$('#cars-scale').value,unit:()=>$('#cars-unit').value,render:renderCars,renderCancel:renderCars
+});
+enableCalendarPan(rangeChart,{
+ get:()=>rangeCursor,set:value=>rangeCursor=value,bounds:rangeBounds,scale:()=>$('#range-scale').value,unit:()=>$('#range-unit').value,
+ render:selectVisibleReportRange,renderCancel:()=>{renderRangeCalendar();renderReports()},
+ snapshot:()=>[$('#report-start').value,$('#report-end').value],
+ restore:values=>{$('#report-start').value=values[0];$('#report-end').value=values[1]}
+});

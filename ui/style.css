@@ -324,3 +324,7 @@ section#cars{background:#fff;border:1px solid #dfe5ea;border-radius:10px;min-wid
 #cars-chart .car-calendar-label .person-name{flex-shrink:0;white-space:nowrap}
 #cars-chart .car-model{font-size:10px;font-weight:400;color:#687888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 [data-theme="dark"] #cars-chart .car-model{color:#a4b3c4}
+
+#chart .head .days,#cars-chart .head .days,#range-chart .head .days{cursor:grab;touch-action:none;user-select:none}
+#chart.calendar-panning,#cars-chart.calendar-panning,#range-chart.calendar-panning{cursor:grabbing}
+#chart.calendar-panning *,#cars-chart.calendar-panning *,#range-chart.calendar-panning *{cursor:grabbing!important}

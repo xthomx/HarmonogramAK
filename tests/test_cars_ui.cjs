@@ -123,6 +123,39 @@ const path=require('node:path');
   await page.fill('#car-fields [name=end]','2026-12-02');
   await page.click('#car-form button[type=submit]');
   assert.equal(await page.evaluate(()=>data.carReservations[0].project),reservedId);
+  // Header drag pans all calendars, with day/week steps, without changing bookings.
+  const storedPlan=await page.evaluate(()=>JSON.stringify(data));
+  for(const [viewName,chartId] of [['plan','chart'],['cars','cars-chart'],['reports','range-chart']]){
+   await page.click('[data-view="'+viewName+'"]');
+   await page.evaluate(name=>{
+    if(name==='plan'){cursor=dt('2026-11-01');$('#scale').value='month';data.calendarDisplay={...displaySettings(),unit:'days'};render()}
+    if(name==='cars'){carsCursor=dt('2026-11-01');$('#cars-scale').value='month';$('#cars-unit').value='days';renderCars()}
+    if(name==='reports'){rangeCursor=dt('2026-11-01');$('#range-scale').value='month';$('#range-unit').value='days';selectVisibleReportRange()}
+   },viewName);
+   const currentBounds=()=>page.evaluate(name=>name==='plan'?bounds():name==='cars'?carsBounds():rangeBounds(),viewName);
+   let header=await page.locator('#'+chartId+' .head .days').boundingBox();
+   const x=header.x+header.width*.7,y=header.y+header.height/2;
+   await page.mouse.move(x,y);await page.mouse.down();
+   await page.mouse.move(x-header.width*4/30,y,{steps:6});await page.mouse.up();
+   assert.deepEqual(await currentBounds(),['2026-11-05','2026-12-04'],viewName+' daily pan');
+   if(viewName==='reports')assert.equal(await page.locator('#report-start').inputValue(),'2026-11-05');
+   header=await page.locator('#'+chartId+' .head .days').boundingBox();
+   await page.mouse.move(header.x+header.width*.7,header.y+header.height/2);await page.mouse.down();
+   await page.mouse.move(header.x+header.width*.6,header.y+header.height/2,{steps:4});
+   await page.keyboard.press('Escape');await page.mouse.up();
+   assert.deepEqual(await currentBounds(),['2026-11-05','2026-12-04'],viewName+' Escape restores view');
+   await page.evaluate(name=>{
+    if(name==='plan'){data.calendarDisplay.unit='weeks';render()}
+    if(name==='cars'){$('#cars-unit').value='weeks';renderCars()}
+    if(name==='reports'){$('#range-unit').value='weeks';renderRangeCalendar();renderReports()}
+   },viewName);
+   header=await page.locator('#'+chartId+' .head .days').boundingBox();
+   await page.mouse.move(header.x+header.width*.7,header.y+header.height/2);await page.mouse.down();
+   await page.mouse.move(header.x+header.width*(.7-7/30),header.y+header.height/2,{steps:8});await page.mouse.up();
+   assert.deepEqual(await currentBounds(),['2026-11-12','2026-12-11'],viewName+' weekly pan');
+  }
+  assert.equal(await page.evaluate(()=>JSON.stringify(data.assignments)),JSON.stringify(JSON.parse(storedPlan).assignments));
+  assert.equal(await page.evaluate(()=>JSON.stringify(data.carReservations)),JSON.stringify(JSON.parse(storedPlan).carReservations));
   assert.deepEqual(errors,[]);
   console.log('Cars UI: create/configure, reserve/edit, conflicts, capacity, resize, year view, theme, project deletion PASS');
  }finally{await browser.close()}
