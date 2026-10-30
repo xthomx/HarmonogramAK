@@ -97,3 +97,11 @@ class CarsTests(unittest.TestCase):
         self.assertEqual(xlsx_format.loads(out.getvalue()),self.plan)
         self.plan['carReservations'][0]['driver']='missing'
         with self.assertRaises(ValueError): fleet.validate(self.plan)
+
+    def test_individual_owner_roundtrip(self):
+        self.plan['cars'][0].update(usage='Indywidualne',ownerId='p1',de='Green Zone')
+        for ext in ('.csv','.txt'):
+            self.assertEqual(plan_format.loads(plan_format.dumps(self.plan,ext),ext),self.plan)
+        self.assertEqual(xlsx_format.loads(xlsx_format.dumps(self.plan)),self.plan)
+        self.plan['cars'][0]['ownerId']='missing'
+        with self.assertRaises(ValueError): fleet.validate(self.plan)

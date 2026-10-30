@@ -1,7 +1,7 @@
 let carsCursor=dt(today),carsTab='calendar',carEdit=null,carEditKind='cars',carDrag=null;
-const carExtraFields=['driver','odometer','vignetteRO','vignetteSK','vignetteHU','vignetteCZ','vignetteAT','de','inspection','tires','kp','notes'];
+const carExtraFields=['ownerId','driver','odometer','vignetteRO','vignetteSK','vignetteHU','vignetteCZ','vignetteAT','de','inspection','tires','kp','notes'];
 const carColumns=[['Nr rej.','plate'],['Marka i model','name'],['Kierowca','driver'],['Stan licznika','odometer'],['Winieta RO','vignetteRO'],['Winieta SK','vignetteSK'],['Winieta HU','vignetteHU'],['Winieta CZ','vignetteCZ'],['Winieta AT','vignetteAT'],['DE','de'],['PRZEGLĄD','inspection'],['OPONY','tires'],['KP O2 12.10.2026','kp'],['Uwagi','notes'],['Miejsca','seats'],['Użytkowanie','usage'],['Użytkownik / sekcja','owner']];
-function carColumnValue(car,key){if(key.startsWith('vignette'))return car[key]||'Brak';if(key==='odometer')return car.odometer===undefined?'':car.odometer.toLocaleString('pl-PL')+' km';return car[key]??''}
+function carColumnValue(car,key){if(key==='owner'&&car.ownerId)return data.people.find(p=>p.id===car.ownerId)?.name||'—';if(key.startsWith('vignette'))return car[key]||'Brak';if(key==='odometer')return car.odometer===undefined?'':car.odometer.toLocaleString('pl-PL')+' km';return car[key]??''}
 const carsList=()=>data.cars||[],carBookings=()=>data.carReservations||[];
 const carsBounds=()=>bounds(carsCursor,$('#cars-scale').value);
 function fleetChange(key,items){const next=normalizeBookingDrivers({...data,[key]:items});validateFleet(next);data=next;save()}
@@ -29,7 +29,7 @@ function renderCars(){
  for(const car of carsList()){
   if(usage&&car.usage!==usage)continue;
   let own=carBookings().filter(b=>b.car===car.id&&b.start<=end&&b.end>=start&&(!project||b.project===project));
-  const matches=[car.id,car.name,car.plate,car.owner,car.driver].join(' ').toLocaleLowerCase('pl').includes(q);
+  const matches=[car.id,car.name,car.plate,carColumnValue(car,'owner'),car.driver].join(' ').toLocaleLowerCase('pl').includes(q);
   if(q&&!matches)own=own.filter(b=>projectText(data.projects.find(p=>p.id===b.project)).toLocaleLowerCase('pl').includes(q));
   if((project||q&&!matches)&&!own.length)continue;count++;booked+=own.length;
   const grid='<div class="grid-bg">'+(weekly?weeks.map(w=>'<div class="cell week-cell" style="flex:'+w.count+'"></div>'):days.map(d=>'<div class="cell '+(weekend(d)?'weekend':'')+'"></div>')).join('')+'</div>';
@@ -53,8 +53,16 @@ function carDialog(title,fields,kind,id){
 }
 function openCar(id){
  const c=carsList().find(x=>x.id===id)||{};
- const fields=field('Nr rej.','plate',c.plate||'','text','required maxlength="30"')+field('Marka i model','name',c.name||'','text','required maxlength="80"')+field('Kierowca','driver',c.driver||'','text','maxlength="120"')+field('Stan licznika (km)','odometer',c.odometer??'','number','min="0" max="99999999" step="1"')+['RO','SK','HU','CZ','AT'].map(country=>'<label>Winieta '+country+'<select data-vignette-mode="'+country+'"><option value="none" '+(!c['vignette'+country]?'selected':'')+'>Brak</option><option value="date" '+(c['vignette'+country]?'selected':'')+'>Data ważności</option></select><input aria-label="Winieta '+country+' — ważna do" type="date" name="vignette'+country+'" value="'+esc(c['vignette'+country]||'')+'"></label>').join('')+field('DE','de',c.de||'','text','maxlength="250"')+field('PRZEGLĄD — ważny do','inspection',c.inspection||'','date')+field('OPONY','tires',c.tires||'','text','maxlength="250"')+field('KP O2 12.10.2026','kp',c.kp||'','text','maxlength="250"')+'<label class="car-wide-field">Uwagi<textarea name="notes" rows="2" maxlength="2000">'+esc(c.notes||'')+'</textarea></label>'+field('Liczba miejsc (łącznie z kierowcą)','seats',c.seats||5,'number','required min="1" max="100" step="1"')+'<label>Typ użytkowania<select name="usage"><option '+(c.usage==='Sekcyjne'?'selected':'')+'>Sekcyjne</option><option '+(c.usage==='Indywidualne'?'selected':'')+'>Indywidualne</option></select></label>'+field('Użytkownik / sekcja','owner',c.owner||'','text','maxlength="80"');
+ const fields=field('Nr rej.','plate',c.plate||'','text','required maxlength="30"')+field('Marka i model','name',c.name||'','text','required maxlength="80"')+field('Kierowca','driver',c.driver||'','text','maxlength="120"')+field('Stan licznika (km)','odometer',c.odometer??'','number','min="0" max="99999999" step="1"')+['RO','SK','HU','CZ','AT'].map(country=>'<label>Winieta '+country+'<select data-vignette-mode="'+country+'"><option value="none" '+(!c['vignette'+country]?'selected':'')+'>Brak</option><option value="date" '+(c['vignette'+country]?'selected':'')+'>Data ważności</option></select><input aria-label="Winieta '+country+' — ważna do" type="date" name="vignette'+country+'" value="'+esc(c['vignette'+country]||'')+'"></label>').join('')+'<label>DE<select name="de"><option value=""></option><option value="Green Zone" '+(c.de==='Green Zone'?'selected':'')+'>Green Zone</option></select></label>'+field('PRZEGLĄD — ważny do','inspection',c.inspection||'','date')+field('OPONY','tires',c.tires||'','text','maxlength="250"')+field('KP O2 12.10.2026','kp',c.kp||'','text','maxlength="250"')+'<label class="car-wide-field">Uwagi<textarea name="notes" rows="2" maxlength="2000">'+esc(c.notes||'')+'</textarea></label>'+field('Liczba miejsc (łącznie z kierowcą)','seats',c.seats||5,'number','required min="1" max="100" step="1"')+'<label>Typ użytkowania<select name="usage"><option '+(c.usage==='Sekcyjne'?'selected':'')+'>Sekcyjne</option><option '+(c.usage==='Indywidualne'?'selected':'')+'>Indywidualne</option></select></label>'+field('Sekcja','owner',c.owner||'','text','maxlength="80"')+'<label id="car-owner-label">Stały użytkownik<select name="ownerId"><option value="">Wybierz osobę</option>'+data.people.map(p=>'<option value="'+esc(p.id)+'" '+((c.ownerId===p.id||!c.ownerId&&c.owner===p.name)?'selected':'')+'>'+esc(p.name)+'</option>').join('')+'</select></label>';
  carDialog(id?'Edytuj samochód':'Dodaj samochód',fields,'cars',id);
+ const usageInput=$('#car-fields [name=usage]'),ownerInput=$('#car-fields [name=ownerId]'),sectionInput=$('#car-fields [name=owner]'),legacyDriver=$('#car-fields [name=driver]');
+ const syncOwner=()=>{
+  const individual=usageInput.value==='Indywidualne';
+  ownerInput.disabled=!individual;ownerInput.required=individual;ownerInput.parentElement.hidden=!individual;
+  sectionInput.disabled=individual;sectionInput.parentElement.hidden=individual;
+  legacyDriver.disabled=individual;legacyDriver.parentElement.hidden=individual;
+ };
+ usageInput.onchange=syncOwner;syncOwner();
  $('#car-fields').querySelectorAll('[data-vignette-mode]').forEach(select=>{
   const input=$('#car-fields [name=vignette'+select.dataset.vignetteMode+']');
   const sync=()=>{const active=select.value==='date';input.hidden=!active;input.disabled=!active;input.required=active};
@@ -67,21 +75,22 @@ function openCarReservation(id,preset={}){
  if(!carsList().length){toast('Najpierw dodaj samochód w zakładce Konfiguracja samochodów.');carsTab='fleet';renderCars();return}
  if(!data.projects.length){toast('Najpierw dodaj projekt w zakładce Projekty.');return}
  const b={...preset,...carBookings().find(x=>x.id===id)};
- carDialog(id?'Edytuj rezerwację':'Nowa rezerwacja samochodu','<label>Samochód<select name="car">'+carsList().map(c=>'<option value="'+esc(c.id)+'" '+(c.id===b.car?'selected':'')+'>'+esc(carCaption(c))+' · '+c.seats+' miejsc · '+esc(c.usage)+'</option>').join('')+'</select></label><label>Projekt — Skrót · Nr tematu · Nazwa<select name="project">'+data.projects.map(p=>'<option value="'+esc(p.id)+'" '+(p.id===b.project?'selected':'')+'>'+esc(projectIdentity(p))+'</option>').join('')+'</select></label><div class="dates">'+field('Od','start',b.start||today,'date','required')+field('Do (włącznie)','end',b.end||b.start||today,'date','required')+'</div>'+'<label>Kierowca<select name="driver"></select></label><small>Kierowca: Nieznany lub osoba z przypisaniem do projektu pokrywającym się z terminem rezerwacji.</small>'+field('Liczba osób (łącznie z kierowcą)','passengers',b.passengers||1,'number','required min="1" max="100" step="1"')+field('Notatka','note',b.note||'','text','maxlength="250"')+'<small>Rezerwacja zajmuje całe auto. Daty końcowe są wliczone. Nakładające się rezerwacje są blokowane.</small>','carReservations',id);
+ carDialog(id?'Edytuj rezerwację':'Nowa rezerwacja samochodu','<label>Samochód<select name="car">'+carsList().map(c=>'<option value="'+esc(c.id)+'" '+(c.id===b.car?'selected':'')+'>'+esc(carCaption(c))+' · '+c.seats+' miejsc · '+esc(c.usage)+'</option>').join('')+'</select></label><label>Projekt — Skrót · Nr tematu · Nazwa<select name="project">'+data.projects.map(p=>'<option value="'+esc(p.id)+'" '+(p.id===b.project?'selected':'')+'>'+esc(projectIdentity(p))+'</option>').join('')+'</select></label><div class="dates">'+field('Od','start',b.start||today,'date','required')+field('Do (włącznie)','end',b.end||b.start||today,'date','required')+'</div>'+'<label>Kierowca<select name="driver"></select></label><small>Auto indywidualne: stały użytkownik. Auto sekcyjne: Nieznany lub osoba pracująca przy projekcie w terminie rezerwacji.</small>'+field('Liczba osób (łącznie z kierowcą)','passengers',b.passengers||1,'number','required min="1" max="100" step="1"')+field('Notatka','note',b.note||'','text','maxlength="250"')+'<small>Rezerwacja zajmuje całe auto. Daty końcowe są wliczone. Nakładające się rezerwacje są blokowane.</small>','carReservations',id);
  const driverInput=$('#car-fields [name=driver]');
  function refreshDrivers(selected=driverInput.value){
-  const booking={project:$('#car-fields [name=project]').value,start:$('#car-fields [name=start]').value,end:$('#car-fields [name=end]').value};
+  const booking={car:$('#car-fields [name=car]').value,project:$('#car-fields [name=project]').value,start:$('#car-fields [name=start]').value,end:$('#car-fields [name=end]').value};
   const people=eligibleCarDrivers(data,booking);
-  driverInput.innerHTML='<option value="">Nieznany</option>'+people.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>').join('');
-  driverInput.value=people.some(p=>p.id===selected)?selected:'';
+  const fixed=carsList().some(c=>c.id===booking.car&&c.usage==='Indywidualne'&&c.ownerId);
+  driverInput.innerHTML=(fixed?'':'<option value="">Nieznany</option>')+people.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>').join('');
+  driverInput.value=fixed?people[0]?.id||'':people.some(p=>p.id===selected)?selected:'';
  }
- for(const name of ['project','start','end'])$('#car-fields [name='+name+']').addEventListener('change',()=>refreshDrivers());
+ for(const name of ['car','project','start','end'])$('#car-fields [name='+name+']').addEventListener('change',()=>refreshDrivers());
  refreshDrivers(b.driver||'');
  const carInput=$('#car-fields [name=car]'),seatsInput=$('#car-fields [name=passengers]');carInput.onchange=()=>{seatsInput.max=carsList().find(c=>c.id===carInput.value).seats};carInput.onchange();
 }
 $('#car-form').onsubmit=e=>{
  e.preventDefault();const values=Object.fromEntries(new FormData(e.target));
- if(carEditKind==='cars'){values.name=values.name.trim();values.plate=values.plate.trim().toUpperCase();values.owner=values.owner.trim();values.seats=Number(values.seats);for(const key of carExtraFields){if(typeof values[key]==='string')values[key]=values[key].trim();if(values[key]==='')delete values[key]}if(values.odometer!==undefined)values.odometer=Number(values.odometer)}else{values.passengers=Number(values.passengers);if(!values.driver)delete values.driver;}
+ if(carEditKind==='cars'){values.name=values.name.trim();values.plate=values.plate.trim().toUpperCase();values.owner=(values.owner||'').trim();if(values.usage==='Indywidualne'){if(!data.people.some(p=>p.id===values.ownerId)){$('#car-error').textContent='Wybierz stałego użytkownika z listy osób.';return}values.owner=data.people.find(p=>p.id===values.ownerId).name}values.seats=Number(values.seats);for(const key of carExtraFields){if(typeof values[key]==='string')values[key]=values[key].trim();if(values[key]==='')delete values[key]}if(values.odometer!==undefined)values.odometer=Number(values.odometer)}else{values.passengers=Number(values.passengers);if(!values.driver)delete values.driver;}
  values.id=carEdit||nextFleetId(carEditKind==='cars'?carsList():carBookings(),carEditKind==='cars'?'a':'ra');
  try{const items=carEditKind==='cars'?carsList():carBookings();fleetChange(carEditKind,carEdit?items.map(x=>x.id===carEdit?values:x):[...items,values]);$('#car-modal').close();toast('Zastosowano zmiany — kliknij Zapisz, aby zapisać plik.')}catch(error){$('#car-error').textContent=error.message}
 };

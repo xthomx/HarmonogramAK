@@ -14,6 +14,8 @@ def validate(plan):
     for car in cars:
         if not isinstance(car.get('name'), str) or not car['name'].strip():
             raise ValueError('Wpisz nazwę samochodu.')
+        if car.get('ownerId') and (car.get('usage') != 'Indywidualne' or not any(p['id'] == car['ownerId'] for p in plan.get('people', []))):
+            raise ValueError('Wybierz istniejącego użytkownika auta indywidualnego.')
         plate = car.get('plate', '')
         if not isinstance(plate, str) or not plate.strip():
             raise ValueError('Wpisz numer rejestracyjny.')

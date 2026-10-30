@@ -79,7 +79,7 @@ def loads(raw):
             expected = set(columns)
             allowed = [expected, expected - {'Etap'}] if kind == 'PRZYPISANIE' else [expected]
             if kind == 'REZERWACJA_AUTA': allowed.append(expected - {'Kierowca_ID','Kierowca'})
-            if kind == 'SAMOCHOD': allowed.append(expected - set(table.CAR_EXTRA.values()))
+            if kind == 'SAMOCHOD': allowed.extend([expected - set(table.CAR_EXTRA.values()), expected - {'Uzytkownik_ID'}])
             if len(names) != len(set(names)) or set(names) not in allowed:
                 raise ValueError('Nieprawidłowe nagłówki w arkuszu: ' + title)
             for cells in iterator:

@@ -4,6 +4,7 @@ function validateFleet(plan){
  const plates=new Set();
  for(const car of cars){
   if(typeof car.name!=='string'||!car.name.trim()||typeof car.plate!=='string'||!car.plate.trim())throw Error('Wpisz nazwę samochodu i numer rejestracyjny.');
+  if(car.ownerId&&(!plan.people?.some(p=>p.id===car.ownerId)||car.usage!=='Indywidualne'))throw Error('Wybierz jednego istniejącego użytkownika auta indywidualnego.');
   const plate=car.plate.toUpperCase().replace(/\s/g,'');if(plates.has(plate))throw Error('Ten numer rejestracyjny już istnieje.');plates.add(plate);
   if(!Number.isInteger(car.seats)||car.seats<1||car.seats>100)throw Error('Liczba miejsc: od 1 do 100, łącznie z kierowcą.');
   if(!['Sekcyjne','Indywidualne'].includes(car.usage)||typeof(car.owner??'')!=='string')throw Error('Nieprawidłowy typ użytkowania samochodu.');
@@ -58,11 +59,17 @@ function vignetteWarningSegments(car,start,end){
 if(typeof module!=='undefined'&&module.exports)module.exports.vignetteWarningSegments=vignetteWarningSegments;
 
 function eligibleCarDrivers(plan,booking){
+ const car=(plan.cars||[]).find(c=>c.id===booking.car);
+ if(car?.usage==='Indywidualne'&&car.ownerId)return (plan.people||[]).filter(p=>p.id===car.ownerId);
  const ids=new Set((plan.assignments||[]).filter(a=>a.project===booking.project&&a.start<=booking.end&&a.end>=booking.start).map(a=>a.person));
  return (plan.people||[]).filter(p=>ids.has(p.id));
 }
 function normalizeBookingDrivers(plan){
- for(const b of plan.carReservations||[])if(b.driver&&!eligibleCarDrivers(plan,b).some(p=>p.id===b.driver))delete b.driver;
+ for(const b of plan.carReservations||[]){
+  const car=(plan.cars||[]).find(c=>c.id===b.car);
+  if(car?.usage==='Indywidualne'&&car.ownerId)b.driver=car.ownerId;
+  else if(b.driver&&!eligibleCarDrivers(plan,b).some(p=>p.id===b.driver))delete b.driver;
+ }
  return plan;
 }
 if(typeof module!=='undefined'&&module.exports)Object.assign(module.exports,{eligibleCarDrivers,normalizeBookingDrivers});

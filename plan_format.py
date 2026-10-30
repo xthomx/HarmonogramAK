@@ -8,7 +8,7 @@ FIELDS = ['Typ', 'ID', 'Nazwa', 'Specjalizacja', 'Grupa', 'Skrot', 'Nr_tematu', 
           'Osoba_ID', 'Projekt_ID', 'Osoba', 'Projekt', 'Od', 'Do', 'Zaangazowanie_proc', 'Notatka', 'Ustawienie', 'Wartosc', 'Etap', 'Samochod_ID', 'Rejestracja', 'Miejsca', 'Uzytkowanie', 'Uzytkownik', 'Liczba_osob']
 FIELDS += ['Kierowca_ID']
 CAR_FIELDS = {'Kierowca_ID','Samochod_ID', 'Rejestracja', 'Miejsca', 'Uzytkowanie', 'Uzytkownik', 'Liczba_osob'}
-CAR_EXTRA = {'project': 'Projekt_ID', 'driver': 'Kierowca', 'route': 'Gdzie_jezdzi', 'odometer': 'Stan_licznika', 'vignetteRO': 'Winieta_RO', 'vignetteSK': 'Winieta_SK', 'vignetteHU': 'Winieta_HU', 'vignetteCZ': 'Winieta_CZ', 'vignetteAT': 'Winieta_AT', 'de': 'DE', 'inspection': 'Przeglad', 'tires': 'Opony', 'kp': 'KP_O2_12_10_2026', 'notes': 'Uwagi_auta'}
+CAR_EXTRA = {'ownerId': 'Uzytkownik_ID', 'project': 'Projekt_ID', 'driver': 'Kierowca', 'route': 'Gdzie_jezdzi', 'odometer': 'Stan_licznika', 'vignetteRO': 'Winieta_RO', 'vignetteSK': 'Winieta_SK', 'vignetteHU': 'Winieta_HU', 'vignetteCZ': 'Winieta_CZ', 'vignetteAT': 'Winieta_AT', 'de': 'DE', 'inspection': 'Przeglad', 'tires': 'Opony', 'kp': 'KP_O2_12_10_2026', 'notes': 'Uwagi_auta'}
 FIELDS += [c for c in CAR_EXTRA.values() if c not in FIELDS]
 CAR_FIELDS.update(set(CAR_EXTRA.values()) - {"Projekt_ID"})
 MAPS = {
@@ -33,6 +33,7 @@ def unsafe(value):
     return value[1:] if len(value)>1 and value[0]=="'" and value[1] in DANGEROUS else value
 
 def format_version(plan):
+    if any(c.get('ownerId') for c in plan.get('cars', [])): return 'PLAN_ZESPOLU_5'
     if any(b.get('driver') for b in plan.get('carReservations', [])): return 'PLAN_ZESPOLU_4'
     if any(any(k in car for k in CAR_EXTRA) for car in plan.get('cars',[])):
         return 'PLAN_ZESPOLU_3'
@@ -85,9 +86,9 @@ def loads(text, extension):
         if not any(row.values()): continue
         typ=row['Typ']
         if typ=='FORMAT':
-            if found or row['Wartosc'] not in ('PLAN_ZESPOLU_1','PLAN_ZESPOLU_2','PLAN_ZESPOLU_3','PLAN_ZESPOLU_4'): raise ValueError('Nieobsługiwana wersja pliku.')
+            if found or row['Wartosc'] not in ('PLAN_ZESPOLU_1','PLAN_ZESPOLU_2','PLAN_ZESPOLU_3','PLAN_ZESPOLU_4','PLAN_ZESPOLU_5'): raise ValueError('Nieobsługiwana wersja pliku.')
             found=True
-            if row['Wartosc'] in ('PLAN_ZESPOLU_2','PLAN_ZESPOLU_3','PLAN_ZESPOLU_4'):
+            if row['Wartosc'] in ('PLAN_ZESPOLU_2','PLAN_ZESPOLU_3','PLAN_ZESPOLU_4','PLAN_ZESPOLU_5'):
                 plan.setdefault('cars',[]);plan.setdefault('carReservations',[])
         elif typ in MAPS:
             key,mapping=MAPS[typ];item={prop:row.get(col,'') for prop,col in mapping.items()}

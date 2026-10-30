@@ -54,3 +54,15 @@ test('drivers are people assigned to project in an overlapping date range',()=>{
  assert.equal(p.carReservations[0].driver,undefined);
  p.carReservations[0].driver='missing';assert.equal(validFleet(p),false);
 });
+
+test('individual car reserves its single permanent user as driver',()=>{
+ const p=plan([booking()]);
+ p.people=[{id:'owner1',name:'Jan'},{id:'other',name:'Anna'}];
+ p.cars[0].usage='Indywidualne';p.cars[0].ownerId='owner1';
+ assert.equal(validFleet(p),true);
+ assert.deepEqual(eligibleCarDrivers(p,p.carReservations[0]).map(x=>x.id),['owner1']);
+ normalizeBookingDrivers(p);assert.equal(p.carReservations[0].driver,'owner1');
+ p.carReservations[0].driver='other';normalizeBookingDrivers(p);
+ assert.equal(p.carReservations[0].driver,'owner1');
+ p.cars[0].ownerId='missing';assert.equal(validFleet(p),false);
+});

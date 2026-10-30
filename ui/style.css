@@ -328,3 +328,5 @@ section#cars{background:#fff;border:1px solid #dfe5ea;border-radius:10px;min-wid
 #chart .head .days,#cars-chart .head .days,#range-chart .head .days{cursor:grab;touch-action:none;user-select:none}
 #chart.calendar-panning,#cars-chart.calendar-panning,#range-chart.calendar-panning{cursor:grabbing}
 #chart.calendar-panning *,#cars-chart.calendar-panning *,#range-chart.calendar-panning *{cursor:grabbing!important}
+
+#car-fields label[hidden]{display:none}

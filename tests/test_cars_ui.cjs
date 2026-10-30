@@ -20,9 +20,9 @@ const path=require('node:path');
   await page.evaluate(()=>{data.projects=[{id:'p1',name:'Linia A',shortName:'LA',topicNumber:'001',description:'Projekt A',color:'#347c68'}]});
   await page.click('#cars-new-car');
   assert.equal(await page.locator('#car-fields [name=project],#car-fields [name=route]').count(),0);
-  for(const [key,value] of Object.entries({driver:'Jan Kowalski',odometer:'123456',vignetteRO:'2026-11-12',vignetteSK:'2027-02-03',vignetteHU:'2027-03-04',vignetteCZ:'2027-04-05',vignetteAT:'2027-05-06',de:'Euro 6',inspection:'2027-10-12',tires:'Zimowe',kp:'O2',notes:'Auto sekcyjne'})){
+  for(const [key,value] of Object.entries({driver:'Jan Kowalski',odometer:'123456',vignetteRO:'2026-11-12',vignetteSK:'2027-02-03',vignetteHU:'2027-03-04',vignetteCZ:'2027-04-05',vignetteAT:'2027-05-06',de:'Green Zone',inspection:'2027-10-12',tires:'Zimowe',kp:'O2',notes:'Auto sekcyjne'})){
    if(key.startsWith('vignette'))await page.selectOption('[data-vignette-mode='+key.slice(8)+']','date');
-   await page.fill('#car-fields [name='+key+']',value);
+   if(key==='de')await page.selectOption('#car-fields [name=de]',value);else await page.fill('#car-fields [name='+key+']',value);
   }
   await page.fill('#car-fields [name=name]','Skoda Octavia');
   await page.fill('#car-fields [name=plate]','SK 12345');
@@ -123,6 +123,23 @@ const path=require('node:path');
   await page.fill('#car-fields [name=end]','2026-12-02');
   await page.click('#car-form button[type=submit]');
   assert.equal(await page.evaluate(()=>data.carReservations[0].project),reservedId);
+  // Individual cars have exactly one permanent user, also used as reservation driver.
+  await page.click('#cars-new-car');
+  await page.fill('#car-fields [name=name]','Auto Jana');
+  await page.fill('#car-fields [name=plate]','SK IND1');
+  await page.selectOption('#car-fields [name=usage]','Indywidualne');
+  assert.equal(await page.locator('#car-fields [name=ownerId]').isVisible(),true);
+  assert.equal(await page.locator('#car-fields [name=owner]').isVisible(),false);
+  await page.selectOption('#car-fields [name=ownerId]','person-test');
+  await page.selectOption('#car-fields [name=de]','Green Zone');
+  await page.click('#car-form button[type=submit]');
+  assert.equal(await page.evaluate(()=>data.cars.at(-1).ownerId),'person-test');
+  assert.equal(await page.evaluate(()=>data.cars.at(-1).de),'Green Zone');
+  await page.evaluate(()=>openCarReservation(null,{car:data.cars.at(-1).id,start:'2026-12-03',end:'2026-12-04',project:'__reservation_without_project__'}));
+  assert.equal(await page.locator('#car-fields [name=driver] option').count(),1);
+  assert.equal(await page.locator('#car-fields [name=driver]').inputValue(),'person-test');
+  await page.click('#car-form button[type=submit]');
+  assert.equal(await page.evaluate(()=>data.carReservations.at(-1).driver),'person-test');
   // Header drag pans all calendars, with day/week steps, without changing bookings.
   const storedPlan=await page.evaluate(()=>JSON.stringify(data));
   for(const [viewName,chartId] of [['plan','chart'],['cars','cars-chart'],['reports','range-chart']]){
