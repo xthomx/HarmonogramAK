@@ -60,6 +60,21 @@ class Formats(unittest.TestCase):
                 self.assertEqual((a['Specjalizacja'],a['Grupa']),('PLC','Robotyk'))
                 self.assertEqual(loads(text,ext)['people'],self.plan['people'])
 
+    def test_delegation_country_roundtrip_and_validation(self):
+        self.plan['projects'][0]['delegationCountry']='Niemcy'
+        for ext in ['.csv','.txt']:
+            with self.subTest(ext=ext):
+                self.assertEqual(loads(dumps(self.plan,ext),ext)['projects'][0]['delegationCountry'],'Niemcy')
+        self.plan['projects'][0]['delegationCountry']='Mars'
+        with self.assertRaises(ValueError): dumps(self.plan,'.csv')
+
+    def test_old_file_without_delegation_column_still_opens(self):
+        rows=list(csv.reader(io.StringIO(dumps(self.plan,'.csv'),newline=''),delimiter=';'))
+        drop=rows[0].index('Kraj_delegacji')
+        out=io.StringIO(newline='')
+        csv.writer(out,delimiter=';',lineterminator='\r\n').writerows([c for i,c in enumerate(r) if i!=drop] for r in rows)
+        self.assertEqual(loads(out.getvalue(),'.csv'),self.plan)
+
     def test_specialization_selection_saved(self):
         for selected in [[],['spec:plc','spec:robotyk'],['__none__']]:
             self.plan['calendarFilters']['specialization']=selected

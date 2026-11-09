@@ -28,6 +28,14 @@ class ExcelTests(unittest.TestCase):
         self.plan['people'] = []; self.plan['projects'] = []; self.plan['assignments'] = []
         self.assertEqual(xlsx_format.loads(xlsx_format.dumps(self.plan)), self.plan)
 
+    def test_delegation_country_in_excel_and_old_headers(self):
+        self.plan['projects'][0]['delegationCountry'] = 'Niemcy'
+        self.assertEqual(xlsx_format.loads(xlsx_format.dumps(self.plan)), self.plan)
+        def drop(w):
+            sheet = w['Projekty']; sheet.delete_cols(sheet.max_column)
+        del self.plan['projects'][0]['delegationCountry']
+        self.assertEqual(xlsx_format.loads(self.edited(drop)), self.plan)
+
     def test_excel_types(self):
         w = load_workbook(io.BytesIO(xlsx_format.dumps(self.plan)))
         self.assertEqual(w.sheetnames, list(xlsx_format.SHEETS))

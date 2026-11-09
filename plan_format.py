@@ -11,11 +11,12 @@ CAR_FIELDS = {'Kierowca_ID','Samochod_ID', 'Rejestracja', 'Miejsca', 'Uzytkowani
 CAR_EXTRA = {'ownerId': 'Uzytkownik_ID', 'project': 'Projekt_ID', 'driver': 'Kierowca', 'route': 'Gdzie_jezdzi', 'odometer': 'Stan_licznika', 'vignetteRO': 'Winieta_RO', 'vignetteSK': 'Winieta_SK', 'vignetteHU': 'Winieta_HU', 'vignetteCZ': 'Winieta_CZ', 'vignetteAT': 'Winieta_AT', 'de': 'DE', 'inspection': 'Przeglad', 'tires': 'Opony', 'kp': 'KP_O2_12_10_2026', 'notes': 'Uwagi_auta'}
 FIELDS += [c for c in CAR_EXTRA.values() if c not in FIELDS]
 CAR_FIELDS.update(set(CAR_EXTRA.values()) - {"Projekt_ID"})
+FIELDS += ['Kraj_delegacji']
 MAPS = {
     'SAMOCHOD': ('cars', {'id':'ID','name':'Nazwa','plate':'Rejestracja','seats':'Miejsca','usage':'Uzytkowanie','owner':'Uzytkownik', **CAR_EXTRA}),
     'REZERWACJA_AUTA': ('carReservations', {'id':'ID','car':'Samochod_ID','project':'Projekt_ID','start':'Od','end':'Do','passengers':'Liczba_osob','note':'Notatka','driver':'Kierowca_ID'}),
     'OSOBA': ('people', {'id':'ID','name':'Nazwa','role':'Specjalizacja','group':'Grupa'}),
-    'PROJEKT': ('projects', {'id':'ID','name':'Nazwa','shortName':'Skrot','topicNumber':'Nr_tematu','description':'Opis','color':'Kolor'}),
+    'PROJEKT': ('projects', {'id':'ID','name':'Nazwa','shortName':'Skrot','topicNumber':'Nr_tematu','description':'Opis','color':'Kolor','delegationCountry':'Kraj_delegacji'}),
     'PRZYPISANIE': ('assignments', {'id':'ID','person':'Osoba_ID','project':'Projekt_ID','start':'Od','end':'Do','load':'Zaangazowanie_proc','note':'Notatka','stage':'Etap'})}
 def stage(value):
     value = (value or 'Offline').strip() or 'Offline'
@@ -76,7 +77,7 @@ def loads(text, extension):
     header=text.splitlines()[0] if text else ''
     if extension=='.csv' and ';' not in header and ',' in header: delimiter=','
     reader=csv.DictReader(io.StringIO(text,newline=''),delimiter=delimiter,strict=True)
-    if not reader.fieldnames or (set(FIELDS)-{'Etap'}-CAR_FIELDS)-set(reader.fieldnames) or len(set(reader.fieldnames))!=len(reader.fieldnames):
+    if not reader.fieldnames or (set(FIELDS)-{'Etap','Kraj_delegacji'}-CAR_FIELDS)-set(reader.fieldnames) or len(set(reader.fieldnames))!=len(reader.fieldnames):
         raise ValueError('Nieprawidłowe nagłówki tabeli planu.')
     plan={'people':[],'projects':[],'assignments':[],'demo':False,'calendarDisplay':{},'calendarFilters':{'project':[],'person':[],'group':''}}
     found=False
@@ -95,6 +96,7 @@ def loads(text, extension):
             if typ=='PRZYPISANIE':
                 item['load']=int(item['load'])
                 item['stage']=stage(item.get('stage'))
+            if typ=='PROJEKT' and not item.get('delegationCountry'): item.pop('delegationCountry',None)
             if typ=='SAMOCHOD':
                 item['seats']=int(item['seats'])
                 for prop in CAR_EXTRA:

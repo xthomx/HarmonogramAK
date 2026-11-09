@@ -20,8 +20,11 @@ function renderReports(){
    return '<div class="row report-result-row"><div class="label" title="'+esc(title)+'"><span class="report-person-name">'+esc(r.person.name)+'</span><span class="report-day-count">'+r.count+'/'+report.days+'</span></div><div class="report-result-track">'+grid+segments+'</div></div>';
   }).join('');
   calendar.innerHTML=body||(total? '':'<div class="empty">Brak osób spełniających wybrane warunki.</div>');
+  const trip=delegationReport(data,report.start,report.end,'Niemcy');
+  $('#delegation-summary').textContent='Osób na delegacji: '+trip.rows.length+' · Suma dni osobowych: '+trip.total;
+  $('#delegation-table').innerHTML=trip.rows.length?'<div class="delegation-grid delegation-head"><span>Osoba</span><span>Dni</span><span>Projekty (dni)</span></div>'+trip.rows.map(r=>'<div class="delegation-grid"><span class="delegation-person">'+esc(r.person.name)+'</span><span class="delegation-days">'+r.count+'</span><span>'+esc(r.projects.map(x=>projectIdentity(x.project)+' ('+x.count+')').join('; '))+'</span></div>').join(''):'<div class="empty">Brak dni delegacji w Niemczech w wybranym okresie.</div>';
 
- }catch(e){error.textContent=e.message;calendar.innerHTML='';$('#report-summary').textContent='';$('#report-page').textContent='';$('#report-prev').disabled=$('#report-next').disabled=true}
+ }catch(e){error.textContent=e.message;calendar.innerHTML='';$('#delegation-summary').textContent='';$('#delegation-table').innerHTML='';$('#report-summary').textContent='';$('#report-page').textContent='';$('#report-prev').disabled=$('#report-next').disabled=true}
 }
 const initialReportBounds=bounds(dt(today),'month');
 $('#report-start').value=initialReportBounds[0];$('#report-end').value=initialReportBounds[1];
