@@ -80,7 +80,7 @@ main{min-width:0}
 section#catalog.compact-catalog{overflow-x:auto}
 .compact-catalog .catalog-table{min-width:560px}
 .compact-catalog .catalog-heading,.compact-catalog .catalog-row{display:grid;align-items:center;gap:10px;padding:4px 12px;min-height:32px;line-height:1.25}
-.compact-catalog .project-columns{grid-template-columns:minmax(70px,.7fr) minmax(65px,.7fr) minmax(100px,1.7fr) minmax(80px,1.5fr) 68px 55px}
+.compact-catalog .project-columns{grid-template-columns:minmax(70px,.7fr) minmax(65px,.7fr) minmax(100px,1.7fr) minmax(80px,1.5fr) minmax(60px,.7fr) 68px 55px}
 .compact-catalog .people-columns{grid-template-columns:minmax(130px,1.6fr) minmax(100px,1.2fr) minmax(90px,1fr) 68px 55px}
 .compact-catalog .catalog-heading{min-height:29px;background:#eef4f1;font-size:10px;color:#667285;font-weight:600;border-bottom:1px solid #dfe5ea}
 .compact-catalog .catalog-row{font-size:12px}
@@ -330,3 +330,14 @@ section#cars{background:#fff;border:1px solid #dfe5ea;border-radius:10px;min-wid
 #chart.calendar-panning *,#cars-chart.calendar-panning *,#range-chart.calendar-panning *{cursor:grabbing!important}
 
 #car-fields label[hidden]{display:none}
+
+.delegation-report{padding:6px 20px 24px}
+.delegation-report h2{margin:12px 0 0;font-size:16px}
+.delegation-grid{display:grid;grid-template-columns:minmax(140px,1.2fr) 70px minmax(200px,3fr);gap:10px;align-items:center;padding:5px 12px;font-size:12px;border-bottom:1px solid #dfe5ea}
+.delegation-grid:nth-child(even){background:#fafbfc}
+.delegation-head{background:#eef4f1!important;font-size:10px;font-weight:600;color:#667285}
+.delegation-person{font-weight:600}
+.delegation-days{font-variant-numeric:tabular-nums;font-weight:600}
+[data-theme="dark"] .delegation-grid{border-color:#39495b}
+[data-theme="dark"] .delegation-grid:nth-child(even){background:#202d3d}
+[data-theme="dark"] .delegation-head{background:#253b40!important;color:#d3e6df}

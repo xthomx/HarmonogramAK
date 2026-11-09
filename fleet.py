@@ -27,6 +27,9 @@ def validate(plan):
             raise ValueError('Liczba miejsc musi wynosić od 1 do 100 (łącznie z kierowcą).')
         if car.get('usage') not in ('Sekcyjne', 'Indywidualne') or not isinstance(car.get('owner', ''), str):
             raise ValueError('Nieprawidłowy typ lub użytkownik samochodu.')
+    for project in plan['projects']:
+        if project.get('delegationCountry', '') not in ('', 'Niemcy'):
+            raise ValueError('Nieprawidłowy kraj delegacji projektu.')
     projects = {x['id'] for x in plan['projects']}
     for car in cars:
         if car.get('project') and car['project'] not in projects:

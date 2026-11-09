@@ -12,7 +12,23 @@ test('clip assignments outside report range',()=>{assert.deepEqual(r([a('2025-12
 test('invalid dates, reversed dates and excessive range rejected',()=>{for(const [start,end] of [['2026-02-30','2026-03-01'],['2026-01-03','2026-01-01'],['2025-01-01','2026-12-31']])assert.throws(()=>report({people,assignments:[]},start,end))});
 test('leap year and one day supported',()=>{assert.equal(report({people,assignments:[]},'2024-01-01','2024-12-31').days,366);assert.equal(report({people,assignments:[]},'2026-01-01','2026-01-01').days,1)});
 
-const {availabilityReport,reportSpan,reportSegments}=require('../ui/report_model.js');
+const {availabilityReport,delegationReport,reportSpan,reportSegments}=require('../ui/report_model.js');
+const trip={people,projects:[{id:'de',name:'Niemcy',delegationCountry:'Niemcy'},{id:'pl',name:'Kraj'}],assignments:[]};
+const t=(project,start,end,stage='Uruchomienie',person='p')=>({project,start,end,stage,person});
+const days=assignments=>delegationReport({...trip,assignments},'2026-11-01','2026-11-30').rows;
+test('delegation counts only Uruchomienie in a project with country Niemcy',()=>{
+ const rows=days([t('de','2026-11-02','2026-11-04'),t('de','2026-11-10','2026-11-12','Offline'),t('pl','2026-11-05','2026-11-09')]);
+ assert.equal(rows.length,1);assert.equal(rows[0].count,3);
+});
+test('delegation counts overlapping days once, clips range, includes weekends',()=>{
+ const rows=days([t('de','2026-10-28','2026-11-03'),t('de','2026-11-02','2026-11-04'),t('de','2026-11-28','2026-12-05')]);
+ assert.equal(rows[0].count,4+3);
+ assert.equal(rows[0].projects[0].count,7);
+});
+test('delegation ignores missing stage as Offline and rejects bad ranges',()=>{
+ assert.equal(days([{project:'de',person:'p',start:'2026-11-02',end:'2026-11-03'}]).length,0);
+ assert.throws(()=>delegationReport(trip,'2026-11-30','2026-11-01'));
+});
 test('half-month result occupies exactly the selected half of the timeline',()=>{
  const report=availabilityReport({people:[{id:'p',name:'A'}],assignments:[]},'2026-11-01','2026-11-15');
  const selected=reportSpan(report.start,report.end,'2026-11-01','2026-11-30');

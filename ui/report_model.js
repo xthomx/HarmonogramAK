@@ -24,6 +24,35 @@ function availabilityReport(plan,start,end,mode='under',match='any'){
  }
  return {start,end,days,rows:result};
 }
+// Days on delegation: assignments in stage "Uruchomienie" whose project has the given
+// delegation country. Inclusive ends, weekends included, each person-day counted once.
+function delegationReport(plan,start,end,country='Niemcy'){
+ const dayMs=86400000,date=s=>new Date(s+'T00:00:00Z');
+ const validDate=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(+date(s))&&date(s).toISOString().slice(0,10)===s;
+ if(!validDate(start)||!validDate(end)||end<start)throw Error('Wybierz poprawny zakres dat.');
+ if(Math.round((date(end)-date(start))/dayMs)+1>366)throw Error('Wybierz okres nie dłuższy niż 366 dni.');
+ const projects=new Map(plan.projects.map(p=>[p.id,p])),perPerson=new Map();
+ for(const a of plan.assignments){
+  if((a.stage||'Offline')!=='Uruchomienie')continue;
+  const project=projects.get(a.project);
+  if(!project||project.delegationCountry!==country)continue;
+  const first=a.start>start?a.start:start,last=a.end<end?a.end:end;
+  if(first>last)continue;
+  if(!perPerson.has(a.person))perPerson.set(a.person,{days:new Set(),projects:new Map()});
+  const entry=perPerson.get(a.person);
+  for(let t=+date(first);t<=+date(last);t+=dayMs)entry.days.add(new Date(t).toISOString().slice(0,10));
+  const own=entry.projects.get(project.id)||{project,days:new Set()};
+  for(let t=+date(first);t<=+date(last);t+=dayMs)own.days.add(new Date(t).toISOString().slice(0,10));
+  entry.projects.set(project.id,own);
+ }
+ const rows=[];
+ for(const person of plan.people){
+  const entry=perPerson.get(person.id);
+  if(entry)rows.push({person,count:entry.days.size,projects:[...entry.projects.values()].map(x=>({project:x.project,count:x.days.size}))});
+ }
+ rows.sort((x,y)=>y.count-x.count||x.person.name.localeCompare(y.person.name,'pl'));
+ return {start,end,country,rows,total:rows.reduce((s,r)=>s+r.count,0)};
+}
 // One coordinate system for selection and report results; inclusive end dates.
 function reportSpan(start,end,visibleStart,visibleEnd){
  const date=s=>Date.parse(s+'T00:00:00Z'),day=86400000;
@@ -40,4 +69,4 @@ function reportSegments(row,start){
   else segments.push({start:date,end:date,load,matches:row.qualifies[i]});
  });return segments;
 }
-if(typeof module!=='undefined'&&module.exports)module.exports={availabilityReport,reportSpan,reportSegments};
+if(typeof module!=='undefined'&&module.exports)module.exports={availabilityReport,delegationReport,reportSpan,reportSegments};
