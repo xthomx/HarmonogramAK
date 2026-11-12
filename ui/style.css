@@ -341,3 +341,7 @@ section#cars{background:#fff;border:1px solid #dfe5ea;border-radius:10px;min-wid
 [data-theme="dark"] .delegation-grid{border-color:#39495b}
 [data-theme="dark"] .delegation-grid:nth-child(even){background:#202d3d}
 [data-theme="dark"] .delegation-head{background:#253b40!important;color:#d3e6df}
+[data-add-for-person]{cursor:pointer}
+[data-add-for-person]:hover{background:#eef5f0}
+#catalog .catalog-row{cursor:pointer}
+[data-theme="dark"] [data-add-for-person]:hover{background:#30463e}
