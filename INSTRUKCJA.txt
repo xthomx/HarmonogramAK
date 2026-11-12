@@ -104,7 +104,7 @@ Działanie aplikacji i budowanie EXE na Windows z Python 3.15 wymagają
 weryfikacji na Twoim komputerze; nie wykonano tutaj testu na Windows.
 
 EKSPORT DANYCH OSÓB
-Wiersz OSOBA zawiera ID, imię i nazwisko, specjalizację oraz grupę, również
+Wiersz OSOBA zawiera ID, nazwisko i imię, specjalizację oraz grupę, również
 dla osób bez przypisań. Wiersz PRZYPISANIE zawiera dodatkowo specjalizację
 i grupę przypisanej osoby. Dotyczy to formatów XLSX, CSV i TXT.
 Po aktualizacji programu ponownie zapisz plan, aby uzupełnić te kolumny
