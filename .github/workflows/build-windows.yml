@@ -81,10 +81,10 @@ jobs:
           node tests/test_cars_ui.cjs
       - name: Build Windows application
         working-directory: ${{ steps.project.outputs.dir }}
-        run: python -m PyInstaller --noconfirm --clean --onedir --windowed --name PlanZespolu --add-data "ui;ui" --collect-all webview main.py
+        run: python -m PyInstaller --noconfirm --clean --onedir --windowed --icon assets/icon.ico --name PlanZespolu --add-data "ui;ui" --collect-all webview main.py
       - name: Build update helper
         working-directory: ${{ steps.project.outputs.dir }}
-        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name HarmonogramUpdater --distpath dist/PlanZespolu updater_runner.py
+        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --icon assets/icon.ico --name HarmonogramUpdater --distpath dist/PlanZespolu updater_runner.py
       - name: Smoke test packaged update helper
         working-directory: ${{ steps.project.outputs.dir }}
         run: |

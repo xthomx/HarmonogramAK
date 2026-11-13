@@ -1,7 +1,8 @@
 function isReservationProject(id){return id==='__reservation_without_project__'}
 function ensureReservationProject(plan){
- const fixed={id:'__reservation_without_project__',name:'Rezerwacja bez projektu',shortName:'Rezerwacja',topicNumber:'',description:'Termin zarezerwowany — projekt do ustalenia.',color:'#788391'};
  const index=plan.projects.findIndex(p=>isReservationProject(p.id));
+ // Numer tematu można nadać w pliku (np. 00-0000) — zachowujemy go przy wczytaniu i zapisie.
+ const fixed={id:'__reservation_without_project__',name:'Rezerwacja bez projektu',shortName:'Rezerwacja',topicNumber:index>=0?String(plan.projects[index].topicNumber||'').trim():'',description:'Termin zarezerwowany — projekt do ustalenia.',color:'#788391'};
  if(index<0)plan.projects.push(fixed);else plan.projects[index]=fixed;
  return plan;
 }
@@ -28,7 +29,7 @@ function groupName(p){return (p.group||'').trim()}
 // Pickers: people by surname (names are stored as "Nazwisko Imię", so the first word), projects by short name with topics "00-…" first.
 function sortedPeople(list){const key=p=>{const w=(p.name||'').trim().split(/\s+/);return [w[0]||'',w.slice(1).join(' ')]};
  return [...list].sort((a,b)=>{const x=key(a),y=key(b);return x[0].localeCompare(y[0],'pl')||x[1].localeCompare(y[1],'pl')})}
-function sortedProjects(list){const first=p=>{const t=(p.topicNumber||'').trim();return t==='00-0000'?0:/^00-/.test(t)?1:2},label=p=>(p.shortName||'').trim()||(p.name||'').trim();
+function sortedProjects(list){const first=p=>{const t=(p.topicNumber||'').trim();return isReservationProject(p.id)?0:t==='00-0000'?1:/^00-/.test(t)?2:3},label=p=>(p.shortName||'').trim()||(p.name||'').trim();
  return [...list].sort((a,b)=>first(a)-first(b)||label(a).localeCompare(label(b),'pl')||(a.name||'').localeCompare(b.name||'','pl'))}
 function groupKey(p){return groupName(p).toLocaleLowerCase('pl')}
 function groupList(){const groups=new Map();for(const p of data.people)if(groupName(p))groups.set(groupKey(p),groupName(p));return [...groups].sort((a,b)=>a[1].localeCompare(b[1],'pl'))}
