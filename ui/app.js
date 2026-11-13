@@ -28,7 +28,7 @@ function groupName(p){return (p.group||'').trim()}
 // Pickers: people by surname (names are stored as "Nazwisko Imię", so the first word), projects by short name with topics "00-…" first.
 function sortedPeople(list){const key=p=>{const w=(p.name||'').trim().split(/\s+/);return [w[0]||'',w.slice(1).join(' ')]};
  return [...list].sort((a,b)=>{const x=key(a),y=key(b);return x[0].localeCompare(y[0],'pl')||x[1].localeCompare(y[1],'pl')})}
-function sortedProjects(list){const first=p=>/^00-/.test((p.topicNumber||'').trim())?0:1,label=p=>(p.shortName||'').trim()||(p.name||'').trim();
+function sortedProjects(list){const first=p=>{const t=(p.topicNumber||'').trim();return t==='00-0000'?0:/^00-/.test(t)?1:2},label=p=>(p.shortName||'').trim()||(p.name||'').trim();
  return [...list].sort((a,b)=>first(a)-first(b)||label(a).localeCompare(label(b),'pl')||(a.name||'').localeCompare(b.name||'','pl'))}
 function groupKey(p){return groupName(p).toLocaleLowerCase('pl')}
 function groupList(){const groups=new Map();for(const p of data.people)if(groupName(p))groups.set(groupKey(p),groupName(p));return [...groups].sort((a,b)=>a[1].localeCompare(b[1],'pl'))}
@@ -144,10 +144,10 @@ if(!label||e.button!==0)return;
 const person=label.closest('[data-person-id]')?.dataset.personId;
 if(!person)return;
 const [start,end]=bounds();
-open('assignments',null,{person,project:selectedFilters().project[0]||data.projects[0]?.id,start,end,load:100})});
+open('assignments',null,{person,project:selectedFilters().project[0]||sortedProjects(data.projects)[0]?.id,start,end,load:100})});
 $('#chart').addEventListener('pointerdown',e=>{if(e.button!==0||dragState||drawState||e.target.closest('[data-edit]'))return;const track=e.target.closest('.track');if(!track)return;if(!data.projects.length){toast('Najpierw dodaj projekt w zakładce Projekty.');return}const person=track.closest('[data-person-id]').dataset.personId,[start,end]=bounds(),days=(dt(end)-dt(start))/DAY+1;const preview=document.createElement('div');preview.className='new-assignment-preview';preview.setAttribute('aria-hidden','true');preview.style.top=Math.max(3,Math.min(e.clientY-track.getBoundingClientRect().top-12,track.clientHeight-27))+'px';track.append(preview);const d={track,preview,person,name:data.people.find(p=>p.id===person).name,pointer:e.pointerId,period:start,days,x:e.clientX,y:e.clientY};d.anchor=d.last=drawDay(d,e.clientX);drawState=d;e.preventDefault();track.setPointerCapture(e.pointerId);paintNewRange(d)});
 $('#chart').addEventListener('pointermove',e=>{const d=drawState;if(!d||d.pointer!==e.pointerId)return;e.preventDefault();d.last=drawDay(d,e.clientX);d.x=e.clientX;d.y=e.clientY;paintNewRange(d)});
-function finishNewRange(cancel=false){const d=drawState;if(!d)return;drawState=null;dragInfo.hidden=true;d.preview.remove();if(d.track.hasPointerCapture(d.pointer))d.track.releasePointerCapture(d.pointer);suppressBarClickUntil=Date.now()+500;if(!cancel)open('assignments',null,{person:d.person,project:selectedFilters().project[0]||data.projects[0]?.id,start:d.start,end:d.end,load:100})}
+function finishNewRange(cancel=false){const d=drawState;if(!d)return;drawState=null;dragInfo.hidden=true;d.preview.remove();if(d.track.hasPointerCapture(d.pointer))d.track.releasePointerCapture(d.pointer);suppressBarClickUntil=Date.now()+500;if(!cancel)open('assignments',null,{person:d.person,project:selectedFilters().project[0]||sortedProjects(data.projects)[0]?.id,start:d.start,end:d.end,load:100})}
 $('#chart').addEventListener('pointerup',e=>{if(drawState?.pointer===e.pointerId)finishNewRange()});$('#chart').addEventListener('pointercancel',()=>finishNewRange(true));$('#chart').addEventListener('lostpointercapture',()=>finishNewRange(true));document.addEventListener('keydown',e=>{if(e.key==='Escape'&&drawState){e.preventDefault();finishNewRange(true)}});window.addEventListener('blur',()=>finishNewRange(true));
 const planFileTypes=[{description:'Plan zespołu (JSON)',accept:{'application/json':['.json']}}];
 function legacyCleared(){try{localStorage.removeItem(key)}catch{}recovered=false}
