@@ -190,7 +190,7 @@ def main():
     root = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent)) / 'ui'
     html = (root / 'index.html').read_text(encoding='utf-8')
     html = html.replace('<link rel="stylesheet" href="style.css">', '<style>' + (root / 'style.css').read_text(encoding='utf-8') + '</style>')
-    for script in ('report_model.js', 'cars_model.js', 'app.js', 'workspace.js', 'cars.js'):
+    for script in ('report_model.js', 'cars_model.js', 'app.js', 'workspace.js', 'cars.js', 'help.js'):
         html = html.replace('<script src="' + script + '"></script>', '<script>' + (root / script).read_text(encoding='utf-8') + '</script>')
 
     api = Api()
