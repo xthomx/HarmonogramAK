@@ -345,3 +345,57 @@ section#cars{background:#fff;border:1px solid #dfe5ea;border-radius:10px;min-wid
 [data-add-for-person]:hover{background:#eef5f0}
 #catalog .catalog-row{cursor:pointer}
 [data-theme="dark"] [data-add-for-person]:hover{background:#30463e}
+
+/* ---- Jak używać (okno pomocy) ---- */
+#help-dialog{--h-panel:#fff;--h-line:#d6dde5;--h-txt:#26354a;--h-mut:#6b7788;--h-wk:#edf0f4;--h-input:#f7f9fb;--h-note:#fff6d6;--h-notel:#e3c766;--h-head:#e6f0ec;width:min(1120px,95vw);height:90vh;max-width:none;padding:0;border:1px solid #cfd8e0;border-radius:12px;overflow:hidden;flex-direction:column}
+#help-dialog[open]{display:flex}
+#help-dialog::backdrop{background:rgba(10,20,30,.5)}
+[data-theme="dark"] #help-dialog{--h-panel:#1b2735;--h-line:#3b4c5f;--h-txt:#e1e8f0;--h-mut:#9fb0c2;--h-wk:#223144;--h-input:#253448;--h-note:#4a4223;--h-notel:#8b7a35;--h-head:#27414a}
+.help-head{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--h-line)}
+.help-head h2{margin:0;font-size:20px;letter-spacing:-.4px}
+.help-close{font-size:22px;line-height:1;padding:4px 12px}
+.help-body{display:grid;grid-template-columns:240px 1fr;min-height:0;flex:1}
+.help-toc{display:flex;flex-direction:column;gap:2px;padding:16px 12px;border-right:1px solid var(--h-line);overflow-y:auto;background:var(--h-wk)}
+.help-toc a{color:inherit;text-decoration:none;padding:8px 10px;border-radius:7px;font-size:13px}
+.help-toc a:hover,.help-toc a:focus-visible{background:var(--h-head)}
+.help-content{overflow-y:auto;padding:8px 32px 40px;scroll-behavior:smooth;line-height:1.6}
+.help-section{padding-top:18px;border-bottom:1px solid var(--h-line);padding-bottom:22px}
+.help-section:last-child{border-bottom:0}
+.help-section h3{font-size:20px;margin:6px 0 12px;letter-spacing:-.4px}
+.help-section p{margin:10px 0}
+.help-steps,.help-section ul{margin:10px 0;padding-left:22px}
+.help-steps li,.help-section li{margin:6px 0}
+.help-tip{background:var(--h-note);border:1px solid var(--h-notel);border-radius:8px;padding:10px 14px}
+.help-section kbd{border:1px solid var(--h-line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;font:12px ui-monospace,Consolas,monospace;background:var(--h-input)}
+.help-section code{background:var(--h-input);border-radius:4px;padding:1px 5px}
+.help-table{border-collapse:collapse;width:100%;margin:10px 0}
+.help-table th,.help-table td{text-align:left;border-bottom:1px solid var(--h-line);padding:8px 10px}
+.help-table th{background:var(--h-head)}
+.help-fig{margin:16px 0;max-width:640px}
+.help-fig .ill{display:block;width:100%;height:auto;font-family:inherit}
+.help-fig figcaption{font-size:12px;color:var(--h-mut);margin-top:6px}
+.help-pair{display:grid;gap:10px;max-width:640px}
+.help-pair .help-fig{margin:0}
+.ill .s-txt{fill:var(--h-txt);font-size:12.5px}.ill .s-txt.b{font-weight:600}
+.ill .s-mut{fill:var(--h-mut);font-size:11px}
+.ill .s-wh{fill:#fff;font-size:11px;font-weight:500}
+.ill .s-panel,.ill .s-menu,.ill .s-btn,.ill .s-tab{fill:var(--h-panel);stroke:var(--h-line)}
+.ill .s-menu{filter:drop-shadow(0 4px 8px rgba(0,0,0,.25))}
+.ill .s-line{stroke:var(--h-line)}
+.ill .s-wk{fill:var(--h-wk)}
+.ill .s-over{fill:#e4655a;opacity:.18}
+.ill .s-today{stroke:#e0524a;stroke-width:2}
+.ill .s-badge circle{fill:#e0752f}.ill .s-badge text{fill:#fff;font-size:11px;font-weight:700}
+.ill .s-cursor{fill:#111;stroke:#fff;stroke-width:1.2}
+.ill .s-arrow{stroke:#28785a;stroke-width:2}
+.ill .s-note{fill:var(--h-note);stroke:var(--h-notel)}
+.ill .s-primary{fill:#28785a}
+.ill .s-input{fill:var(--h-input);stroke:var(--h-line)}
+.ill .s-hl{fill:rgba(40,120,90,.14);stroke:#28785a;stroke-dasharray:4 3}
+.ill .s-handle{fill:#fff;stroke:#28785a}
+.ill .s-cut{stroke:#e0524a;stroke-width:2;stroke-dasharray:4 3}
+.ill .s-head,.ill .s-tabbar{fill:var(--h-head)}
+.ill .s-tab.on{fill:var(--h-head);stroke:#28785a}
+.ill .s-match{fill:none;stroke:#28785a;stroke-width:2}
+.ill .s-side{fill:#122b2a}.ill .s-sidebtn{fill:#1d423f;stroke:#39534b}.ill .s-sidetxt{fill:#dbe8e3;font-size:12.5px}.ill .s-sidemut{fill:#88a29b;font-size:11px}
+@media (max-width:760px){.help-body{grid-template-columns:1fr}.help-toc{display:none}.help-content{padding:8px 16px 32px}}
