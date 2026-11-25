@@ -404,3 +404,23 @@ section#cars{background:#fff;border:1px solid #dfe5ea;border-radius:10px;min-wid
 #drop-overlay[hidden]{display:none}
 #drop-overlay>div{display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center;color:#fff;font-size:22px;padding:44px 56px;border:3px dashed #9fd6c0;border-radius:18px;background:rgba(40,120,90,.35)}
 #drop-overlay span{font-size:14px;color:#cfe6dd}
+/* ---- Eksport harmonogramu do Excela ---- */
+#export-dialog{width:min(760px,94vw);max-height:92vh;overflow:auto}
+.export-help{color:#667285;margin:6px 0 14px;font-size:13px}
+.export-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.export-grid label{display:flex;flex-direction:column;gap:5px;font-size:12px}
+.export-lists{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.export-lists fieldset{border:1px solid #d6dde5;border-radius:8px;padding:8px 10px;margin:0;min-width:0}
+.export-lists legend{font-weight:600;font-size:13px;padding:0 6px}
+.export-lists legend button{border:0;background:transparent;text-decoration:underline;font-size:11px;padding:0 4px;color:inherit}
+.export-options{max-height:200px;overflow:auto;display:flex;flex-direction:column}
+.export-options label{display:flex;gap:8px;align-items:center;padding:4px 2px;font-size:13px}
+.export-options input{width:auto;accent-color:#28785a}
+.export-free{margin:12px 0 4px;display:flex;gap:8px;align-items:center}
+#ex-summary{color:#28785a;font-weight:600;margin:8px 0}
+#ex-error{color:#b3392d;margin:8px 0;min-height:1em}
+[data-theme="dark"] .export-lists fieldset{border-color:#39495b}
+[data-theme="dark"] #ex-summary{color:#8fcca7}
+[data-theme="dark"] #ex-error{color:#ffafa6}
+[data-theme="dark"] .export-help{color:#bac8d7}
+@media (max-width:700px){.export-grid{grid-template-columns:1fr 1fr}.export-lists{grid-template-columns:1fr}}

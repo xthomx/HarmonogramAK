@@ -172,6 +172,17 @@ ILL.delegation=()=>svg(640,150,`
 <text class="s-txt" x="24" y="124">Żuk Jan</text><text class="s-txt" x="260" y="124">9</text><text class="s-txt" x="340" y="124">LP-2: 4 · Hala 2: 5</text>
 ${badge(1,196,42)}${badge(2,612,69)}`,'Tabela dni delegacji w raportach');
 
+ILL.export=()=>{
+  const cols=14,x0=150,w=(640-x0-10)/cols;let s=`<rect class="s-panel" x=".5" y=".5" width="639" height="150" rx="8"/>
+  <rect class="s-head" x="1" y="1" width="638" height="24" rx="7"/><text class="s-txt b" x="10" y="17">Osoba</text><text class="s-txt b" x="92" y="17">Grupa</text>`;
+  for(let i=0;i<cols;i++)s+=`<text class="s-mut" x="${x0+i*w+w/2}" y="17" text-anchor="middle">${i+2}</text>`;
+  const rows=[['Adamski Piotr','Serwis',[[0,4,'#bfe0d2','LP-2']]],['Nowak Jan','Serwis',[[2,8,'#bfd0ea','H 50%']]],['Żuk Anna','Robotyk',[[5,9,'#d9c8ea','SW']]]];
+  rows.forEach((r,i)=>{const y=25+i*34;s+=`<line class="s-line" x1="0" x2="640" y1="${y}" y2="${y}"/><text class="s-txt b" x="10" y="${y+21}">${r[0]}</text><text class="s-txt" x="92" y="${y+21}">${r[1]}</text>`;
+   [5,6,12,13].forEach(k=>s+=`<rect class="s-wk" x="${x0+k*w}" y="${y+1}" width="${w}" height="32"/>`);
+   r[2].forEach(b=>s+=`<rect x="${x0+b[0]*w}" y="${y+5}" width="${(b[1]-b[0]+1)*w}" height="24" rx="3" fill="${b[2]}"/><text class="s-txt" x="${x0+b[0]*w+6}" y="${y+21}" style="font-size:11px;fill:#1b2735">${b[3]}</text>`)});
+  s+=`<g transform="translate(0 128)"><rect class="s-tabbar" x="1" y="0" width="638" height="22" rx="7"/><rect class="s-tab on" x="10" y="3" width="92" height="17" rx="4"/><text class="s-txt" x="20" y="16" style="font-size:11px">Harmonogram</text><rect class="s-tab" x="108" y="3" width="70" height="17" rx="4"/><text class="s-txt" x="118" y="16" style="font-size:11px">Zadania</text></g>`;
+  return svg(640,152,s+badge(1,70,12)+badge(2,x0+3*w,12)+badge(3,x0+5.5*w,62)+badge(4,196,139),'Wygląd pliku Excel z eksportu: arkusz „Harmonogram” i arkusz „Zadania”');
+};
 ILL.excel=()=>svg(640,200,`
 <rect class="s-panel" x=".5" y=".5" width="639" height="199" rx="8"/>
 <rect class="s-head" x="1" y="1" width="638" height="26" rx="7"/>
@@ -273,6 +284,14 @@ ${steps('<b>Podsumowanie</b> — łączna liczba dni oraz liczba osób.','<b>Tab
 ${list('Liczone są tylko zadania z etapem <b>Uruchomienie</b> w projektach, którym ustawiono kraj delegacji <b>Niemcy</b>.','Liczą się dni kalendarzowe z weekendami, obie daty włącznie.','Zadania tej samej osoby, które się nakładają, liczą się jeden raz.')}
 ${tip('Okres do podsumowania wybierasz tak samo jak dla raportu dostępności — nad nim.')}`);
 
+sec('eksport','Eksport harmonogramu do Excela',`
+<p>Przycisk <b>📊 Eksport do Excela</b> (prawy górny róg, obok „Nowe przypisanie”) zapisuje wybrany fragment harmonogramu jako osobny plik Excel — np. do wysłania zespołowi lub kierownikowi. Plan w programie się nie zmienia.</p>
+${ILL.export()}
+${steps('<b>Osoby</b> — wiersze, z grupą i specjalizacją.','<b>Kolumny</b> — dni (z zaznaczonymi weekendami) albo tygodnie.','<b>Kolorowe komórki</b> — projekty w kolorach z programu, skrót projektu (oraz % przy zaangażowaniu poniżej 100). Pogrubienie oznacza etap „Uruchomienie”, a czerwony tekst z „!” — przeciążenie powyżej 100%.','<b>Arkusz „Zadania”</b> — lista zadań z datami, zaangażowaniem, etapem i notatką, gotowa do filtrowania. Pod tabelą harmonogramu jest legenda projektów.')}
+<p>W oknie eksportu wybierasz:</p>
+${list('<b>Zakres dat</b> — domyślnie widoczny okres kalendarza (maksymalnie 366 dni) oraz układ kolumn: dni lub tygodnie.','<b>Projekty</b> — tylko zadania wybranych projektów.','<b>Osoby</b> — tylko wybrane osoby.','<b>Grupę osób</b> — wszystkie osoby z jednej grupy (albo „Bez grupy”).','Opcję pokazywania wybranych osób lub grupy także wtedy, gdy w okresie nie mają zadań.')}
+<p>Wybory można łączyć (np. grupa Serwis + projekt LP-2). Puste listy oznaczają brak ograniczenia. Okno pokazuje na bieżąco, ile osób i zadań trafi do pliku. Domyślnie zaznaczone są filtry, które masz ustawione w harmonogramie.</p>
+${tip('Eksport zapisuje do <b>osobnego</b> pliku — nie można w jego miejsce wskazać otwartego planu. Plik ma stan z chwili eksportu i nie wraca do programu; do dalszej pracy używaj zwykłego „Zapisz”.')}`);
 sec('excel','Praca z Excelem',`
 <p>Plan zapisany jako Excel (.xlsx) zawiera cztery arkusze o stałych nazwach. Możesz je edytować w Excelu i ponownie otworzyć w programie.</p>
 ${ILL.excel()}
