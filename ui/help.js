@@ -155,6 +155,14 @@ ILL.report=()=>{
   return svg(W,H,s,'Raport dostępności: kolor paska pokazuje sumaryczne obciążenie osoby');
 };
 
+ILL.absence=()=>{
+  const g=chart({days:7,first:24,weekends:[],rows:[{name:'Nowak Jan',bars:[{from:1,to:3,c:C.x,t:'00-0001'}]}]});
+  const mail=`<g transform="translate(0 0)"><rect class="s-panel" x=".5" y=".5" width="250" height="96" rx="8"/><text class="s-mut" x="12" y="20">Wiadomość e-mail</text>
+   <text class="s-txt" x="12" y="42">Dla pracownika Jan Nowak</text><text class="s-txt" x="12" y="60">wprowadzono w okresie 2026-11-25</text><text class="s-txt" x="12" y="78">- 2026-11-27 nieobecność zwolnienie…</text></g>`;
+  const cal=`<g transform="translate(300 28) scale(.55)">${g.s}</g>`;
+  const e=mail+arrow(256,48,294,48)+cal+`<g transform="translate(300 100)">${note(0,0,330,'Notatka: Zwolnienie chorobowe')}</g>`;
+  return svg(640,150,e+badge(1,236,8)+badge(2,320,18)+badge(3,430,118),'Przeciągnięcie wiadomości o nieobecności na okno programu');
+};
 ILL.delegation=()=>svg(640,150,`
 <rect class="s-panel" x=".5" y=".5" width="639" height="149" rx="8"/>
 <text class="s-txt b" x="14" y="26" style="font-size:15px">Dni delegacji w Niemczech</text>
@@ -226,6 +234,12 @@ ${list('<b>Podziel zadanie</b> — wskazujesz pierwszy dzień drugiej części. 
 ${ILL.split()}
 <p>Te same polecenia („Podziel zadanie”, „Kopiuj dla innych osób”) znajdziesz też jako przyciski w formularzu zadania.</p>`);
 
+sec('nieobecnosci','Nieobecności z wiadomości e-mail',`
+<p>Informację o nieobecności z systemu kadrowego możesz wprowadzić do planu jednym ruchem — przeciągając wiadomość na okno programu.</p>
+${ILL.absence()}
+${steps('<b>Przeciągnij</b> wiadomość z Outlooka (lub plik .msg / .eml) na okno programu. Zadziała też zaznaczony i przeciągnięty fragment tekstu z treścią wiadomości.','Program szuka zdania w formie: <i>Dla pracownika Jan Nowak wprowadzono w okresie 2026-11-25 - 2026-11-27 nieobecność zwolnienie chorobowe.</i>','Dla wskazanej osoby i okresu dodaje zadanie z projektu o numerze tematu <b>00-0001</b> (zaangażowanie 100%, etap Offline). W <b>notatce</b> zapisuje rodzaj nieobecności, np. „Zwolnienie chorobowe”.')}
+${list('Imię i nazwisko z wiadomości (<i>Jan Nowak</i>) jest dopasowywane do zapisu w planie (<i>Nowak Jan</i>) — kolejność słów nie ma znaczenia.','W jednej wiadomości może być kilka takich zdań — każde zostanie dodane.','Ta sama nieobecność przeciągnięta ponownie nie zostanie zdublowana.','Daty mogą mieć postać 2026-11-25 lub 25.11.2026.')}
+${tip('Aby to działało, w <b>Projektach</b> musi istnieć projekt z numerem tematu <b>00-0001</b>. Jeżeli program nie znajdzie osoby albo projektu, pokaże komunikat i niczego nie doda. Pamiętaj o kliknięciu „Zapisz” — zmiany zapisują się w pliku dopiero wtedy.')}`);
 sec('osoby','Osoby',`
 <p>W zakładce <b>Osoby</b> prowadzisz listę zespołu.</p>
 ${ILL.catalog()}
