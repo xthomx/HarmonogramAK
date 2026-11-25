@@ -9,6 +9,7 @@ import uuid
 from plan_format import dumps, loads
 import xlsx_format
 import fleet
+import schedule_export
 from preferences import Preferences
 from app_version import APP_VERSION
 from updates import check_updates, RELEASES_URL
@@ -40,6 +41,24 @@ def atomic_write(path, text):
     try:
         with tempfile.NamedTemporaryFile(mode='wb', dir=path.parent,
                                          prefix='.plan-', suffix='.tmp', delete=False) as f:
+            tmp = Path(f.name)
+            f.write(payload)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    except PermissionError as exc:
+        raise PermissionError('Nie można zapisać pliku. Zamknij go w Excelu i sprawdź uprawnienia do folderu.') from exc
+    finally:
+        if tmp and tmp.exists():
+            tmp.unlink()
+
+
+def atomic_write_bytes(path, payload):
+    """Zapis binarny przez plik tymczasowy — błąd nie niszczy poprzedniego pliku."""
+    path = Path(path)
+    tmp = None
+    try:
+        with tempfile.NamedTemporaryFile(mode='wb', dir=path.parent, prefix='.export-', suffix='.tmp', delete=False) as f:
             tmp = Path(f.name)
             f.write(payload)
             f.flush()
@@ -184,13 +203,35 @@ class Api:
             warning = self._remember_path(path)
             return {'name': path.name, 'path': str(path.resolve()), 'warning': warning}
 
+    def export_schedule(self, payload):
+        """Zapisuje wybrany fragment harmonogramu jako osobny plik Excel; plan nie jest zmieniany."""
+        import webview
+        content = schedule_export.build(payload)
+        with self._lock:
+            current = self._path
+            name = 'harmonogram_%s_%s.xlsx' % (payload['start'], payload['end'])
+            paths = self._window.create_file_dialog(webview.FileDialog.SAVE, save_filename=name,
+                directory=str(current.parent) if current else '', file_types=('Excel (*.xlsx)',))
+            if not paths:
+                return None
+            path = Path(paths[0] if isinstance(paths, (tuple, list)) else paths)
+            if path.suffix.lower() != '.xlsx':
+                path = path.with_suffix('.xlsx')
+            if current and path.resolve() == current.resolve():
+                raise ValueError('Wybierz inny plik niż otwarty plan — eksport nie może go zastąpić.')
+            if path.exists() and not self._window.create_confirmation_dialog(
+                    'Zapis pliku', 'Zastąpić istniejący plik: ' + path.name + '?'):
+                return None
+            atomic_write_bytes(path, content)
+            return {'name': path.name, 'path': str(path.resolve())}
+
 
 def main():
     import webview
     root = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent)) / 'ui'
     html = (root / 'index.html').read_text(encoding='utf-8')
     html = html.replace('<link rel="stylesheet" href="style.css">', '<style>' + (root / 'style.css').read_text(encoding='utf-8') + '</style>')
-    for script in ('report_model.js', 'cars_model.js', 'absence_model.js', 'app.js', 'workspace.js', 'cars.js', 'help.js', 'absence.js'):
+    for script in ('report_model.js', 'cars_model.js', 'absence_model.js', 'app.js', 'workspace.js', 'cars.js', 'help.js', 'absence.js', 'export.js'):
         html = html.replace('<script src="' + script + '"></script>', '<script>' + (root / script).read_text(encoding='utf-8') + '</script>')
 
     api = Api()
