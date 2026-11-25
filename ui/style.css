@@ -399,3 +399,8 @@ section#cars{background:#fff;border:1px solid #dfe5ea;border-radius:10px;min-wid
 .ill .s-match{fill:none;stroke:#28785a;stroke-width:2}
 .ill .s-side{fill:#122b2a}.ill .s-sidebtn{fill:#1d423f;stroke:#39534b}.ill .s-sidetxt{fill:#dbe8e3;font-size:12.5px}.ill .s-sidemut{fill:#88a29b;font-size:11px}
 @media (max-width:760px){.help-body{grid-template-columns:1fr}.help-toc{display:none}.help-content{padding:8px 16px 32px}}
+/* ---- Upuszczanie wiadomości o nieobecności ---- */
+#drop-overlay{position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;background:rgba(18,43,42,.78);pointer-events:none}
+#drop-overlay[hidden]{display:none}
+#drop-overlay>div{display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center;color:#fff;font-size:22px;padding:44px 56px;border:3px dashed #9fd6c0;border-radius:18px;background:rgba(40,120,90,.35)}
+#drop-overlay span{font-size:14px;color:#cfe6dd}
